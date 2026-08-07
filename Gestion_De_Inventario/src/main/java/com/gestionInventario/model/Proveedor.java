@@ -43,7 +43,7 @@ public class Proveedor {
 
     @Email
     @Size(max = 150)
-    @Column(unique = true, length = 150)
+    @Column(unique = true, length = 150, nullable = false)
     private String correo;
 
     @Column(length = 255)

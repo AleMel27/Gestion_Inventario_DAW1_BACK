@@ -2,6 +2,9 @@ package com.gestionInventario.model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -29,11 +32,13 @@ public class Almacen {
 	private String descripcion;
 
 	@Column(nullable = false)
-	private Integer estado;
+	private Boolean estado;
 
+	@CreationTimestamp
 	@Column(name = "fecha_creacion", nullable = false, updatable = false)
 	private LocalDateTime fechaCreacion;
 
+	@UpdateTimestamp
 	@Column(name = "fecha_actualizacion", nullable = false)
 	private LocalDateTime fechaActualizacion;
 
