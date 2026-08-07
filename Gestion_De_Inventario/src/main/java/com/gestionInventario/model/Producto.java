@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.inventario.enums.UnidadMedida;
+import com.gestionInventario.enums.UnidadMedida;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

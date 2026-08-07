@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.inventario.enums.TipoMovimiento;
+import com.gestionInventario.enums.TipoMovimiento;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

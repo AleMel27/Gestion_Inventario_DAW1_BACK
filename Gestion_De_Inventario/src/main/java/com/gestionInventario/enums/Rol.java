@@ -1,4 +1,4 @@
-package com.inventario.enums;
+package com.gestionInventario.enums;
 
 public enum Rol {
 
