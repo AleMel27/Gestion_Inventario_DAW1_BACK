@@ -33,8 +33,15 @@ public class Producto {
 	@Column(name = "id_producto")
 	private Long idProducto;
 
+	@Column(name = "id_categoria", nullable = false)
+	private Long idCategoria;
+
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "id_categoria", nullable = false)
+	@JoinColumn(
+	    name = "id_categoria",
+	    insertable = false,
+	    updatable = false
+	)
 	private Categoria categoria;
 
 	@Column(nullable = false, unique = true, length = 50)
