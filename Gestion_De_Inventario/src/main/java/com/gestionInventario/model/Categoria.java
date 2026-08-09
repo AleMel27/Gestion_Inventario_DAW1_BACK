@@ -3,6 +3,7 @@ package com.gestionInventario.model;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
@@ -14,6 +15,7 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 @Entity
+@DynamicUpdate
 @Table(name = "categorias")
 @Data
 public class Categoria {

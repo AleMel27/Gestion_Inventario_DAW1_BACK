@@ -5,12 +5,8 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.gestionInventario.enums.TipoMovimiento;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -46,8 +42,8 @@ public class MovimientoInventario {
 	@JoinColumn(name = "id_compra")
 	private Compra compra;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "tipo_movimiento", nullable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "id_tipo_movimiento", nullable = false, columnDefinition = "smallint unsigned")
 	private TipoMovimiento tipoMovimiento;
 
 	@Column(nullable = false, precision = 12, scale = 3)

@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 // ==========================================
 // import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.gestionInventario.model.Rol;
 import com.gestionInventario.model.Usuario;
+import com.gestionInventario.repository.IRolRepository;
 import com.gestionInventario.repository.IUsuarioRepository;
 
 @Service
@@ -20,6 +22,9 @@ public class UsuarioService {
 
     @Autowired
     private IUsuarioRepository repo;
+
+    @Autowired
+    private IRolRepository rolRepo;
 
     // ==========================================
     // SPRING SECURITY
@@ -47,6 +52,7 @@ public class UsuarioService {
         String passwordCodificado = passwordEncoder.encode(usuario.getPasswordHash());
         usuario.setPasswordHash(passwordCodificado);
         */
+        asignarRolExistente(usuario);
         return repo.save(usuario);
     }
 
@@ -87,6 +93,7 @@ public class UsuarioService {
             // NOTA: Si usuario.getPasswordHash() viene vacío o nulo, NO se altera el passwordHash existente.
 
             // 3. Guardamos la entidad persistida/actualizada
+            asignarRolExistente(usuarioExistente);
             return repo.save(usuarioExistente);
         }
         
@@ -95,6 +102,16 @@ public class UsuarioService {
 
     public void eliminar(Long id) {
         repo.deleteById(id);
+    }
+
+    private void asignarRolExistente(Usuario usuario) {
+        if (usuario.getRol() == null || usuario.getRol().getIdRol() == null) {
+            throw new RuntimeException("El rol es obligatorio");
+        }
+
+        Rol rol = rolRepo.findById(usuario.getRol().getIdRol())
+                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+        usuario.setRol(rol);
     }
     
     /*

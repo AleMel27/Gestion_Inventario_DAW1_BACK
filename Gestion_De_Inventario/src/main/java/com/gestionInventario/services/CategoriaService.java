@@ -1,8 +1,8 @@
 package com.gestionInventario.services;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.gestionInventario.model.Categoria;
@@ -14,8 +14,8 @@ public class CategoriaService {
     @Autowired
     private ICategoriaRepository repo;
 
-    public List<Categoria> listarTodos() {
-        return repo.findAll();
+    public Page<Categoria> listarPorEstado(Boolean estado, Pageable pageable) {
+        return repo.findByEstado(estado, pageable);
     }
 
     public Categoria obtenerPorId(Long id) {
@@ -27,15 +27,28 @@ public class CategoriaService {
     }
 
     public Categoria actualizar(Long id, Categoria categoria) {
-        if (repo.existsById(id)) {
-            categoria.setIdCategoria(id);
-            return repo.save(categoria);
+        Categoria categoriaExistente = repo.findById(id).orElse(null);
+
+        if (categoriaExistente != null) {
+            if (tieneTexto(categoria.getNombre())) {
+                categoriaExistente.setNombre(categoria.getNombre());
+            }
+
+            if (tieneTexto(categoria.getDescripcion())) {
+                categoriaExistente.setDescripcion(categoria.getDescripcion());
+            }
+
+            return repo.save(categoriaExistente);
         }
         return null;
     }
 
     public void eliminar(Long id) {
         repo.deleteById(id);
+    }
+
+    private boolean tieneTexto(String valor) {
+        return valor != null && !valor.trim().isEmpty();
     }
 
 }

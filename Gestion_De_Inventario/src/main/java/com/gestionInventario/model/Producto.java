@@ -4,14 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
-
-import com.gestionInventario.enums.UnidadMedida;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,6 +20,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 
 @Entity
+@DynamicUpdate
 @Table(name = "productos", uniqueConstraints = {
 		@UniqueConstraint(name = "uq_productos_codigo", columnNames = "codigo") })
 @Data
@@ -46,8 +44,8 @@ public class Producto {
 	@Column(length = 500)
 	private String descripcion;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "unidad_medida", nullable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "id_unidad_medida", nullable = false, columnDefinition = "smallint unsigned")
 	private UnidadMedida unidadMedida;
 
 	@Column(name = "precio_venta", nullable = false, precision = 12, scale = 2)
