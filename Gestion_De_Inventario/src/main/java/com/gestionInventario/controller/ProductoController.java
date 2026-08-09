@@ -32,10 +32,18 @@ public class ProductoController {
 	@GetMapping
 	public ResponseEntity<PageDTO<ProductoDTO>> listar(
 			@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "true") Boolean estado) {
+			@RequestParam(defaultValue = "true") Boolean estado,
+			@RequestParam(required = false) String nombre,
+			@RequestParam(required = false) String codigo,
+			@RequestParam(required = false) Integer idUnidadMedida) {
 		int size = 10;
 		int pageIndex = Math.max(page - 1, 0);
-		Page<Producto> productos = service.listarPorEstado(estado, PageRequest.of(pageIndex, size));
+		Page<Producto> productos = service.listarConFiltros(
+				estado,
+				nombre,
+				codigo,
+				idUnidadMedida,
+				PageRequest.of(pageIndex, size));
 		List<ProductoDTO> dtos = productos.getContent()
 				.stream()
 				.map(mapper::convertirADto)

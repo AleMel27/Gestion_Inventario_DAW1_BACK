@@ -3,6 +3,7 @@ package com.gestionInventario.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.gestionInventario.model.Categoria;
@@ -24,8 +25,35 @@ public class ProductoService {
     @Autowired
     private IUnidadMedidaRepository unidadMedidaRepo;
 
-    public Page<Producto> listarPorEstado(Boolean estado, Pageable pageable) {
-        return repo.findByEstado(estado, pageable);
+    public Page<Producto> listarConFiltros(
+            Boolean estado,
+            String nombre,
+            String codigo,
+            Integer idUnidadMedida,
+            Pageable pageable) {
+        Specification<Producto> spec = (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("estado"), estado);
+
+        if (tieneTexto(nombre)) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("nombre")),
+                            "%" + nombre.trim().toLowerCase() + "%"));
+        }
+
+        if (tieneTexto(codigo)) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("codigo")),
+                            "%" + codigo.trim().toLowerCase() + "%"));
+        }
+
+        if (idUnidadMedida != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("unidadMedida").get("idUnidadMedida"), idUnidadMedida));
+        }
+
+        return repo.findAll(spec, pageable);
     }
 
     public Producto obtenerPorId(Long id) {
