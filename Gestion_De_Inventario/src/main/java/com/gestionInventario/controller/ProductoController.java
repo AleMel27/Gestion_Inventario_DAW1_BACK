@@ -87,7 +87,19 @@ public class ProductoController {
 
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-		service.eliminar(id);
+		boolean eliminado = service.eliminar(id);
+		if (!eliminado) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.noContent().build();
+	}
+
+	@PatchMapping("/{id}/reactivar")
+	public ResponseEntity<Void> reactivar(@PathVariable Long id) {
+		boolean reactivado = service.reactivar(id);
+		if (!reactivado) {
+			return ResponseEntity.notFound().build();
+		}
 		return ResponseEntity.noContent().build();
 	}
 }

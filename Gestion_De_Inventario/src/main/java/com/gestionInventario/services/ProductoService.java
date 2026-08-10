@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.gestionInventario.model.Categoria;
 import com.gestionInventario.model.Producto;
@@ -100,8 +102,28 @@ public class ProductoService {
         return null;
     }
 
-    public void eliminar(Long id) {
-        repo.deleteById(id);
+    public boolean eliminar(Long id) {
+        Producto productoExistente = repo.findById(id).orElse(null);
+
+        if (productoExistente == null) {
+            return false;
+        }
+
+        productoExistente.setEstado(false);
+        repo.save(productoExistente);
+        return true;
+    }
+
+    public boolean reactivar(Long id) {
+        Producto productoExistente = repo.findById(id).orElse(null);
+
+        if (productoExistente == null) {
+            return false;
+        }
+
+        productoExistente.setEstado(true);
+        repo.save(productoExistente);
+        return true;
     }
 
     private void asignarCategoriaExistente(Producto producto) {
@@ -121,8 +143,16 @@ public class ProductoService {
     }
 
     private Categoria obtenerCategoriaExistente(Long idCategoria) {
-        return categoriaRepo.findById(idCategoria)
+        Categoria categoria = categoriaRepo.findById(idCategoria)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+
+        if (Boolean.FALSE.equals(categoria.getEstado())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No se puede asignar una categoría inactiva al producto");
+        }
+
+        return categoria;
     }
 
     private UnidadMedida obtenerUnidadMedidaExistente(Integer idUnidadMedida) {

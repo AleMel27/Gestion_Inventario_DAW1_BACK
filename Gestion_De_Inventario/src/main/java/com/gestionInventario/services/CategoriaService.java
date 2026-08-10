@@ -43,8 +43,28 @@ public class CategoriaService {
         return null;
     }
 
-    public void eliminar(Long id) {
-        repo.deleteById(id);
+    public boolean eliminar(Long id) {
+        Categoria categoriaExistente = repo.findById(id).orElse(null);
+
+        if (categoriaExistente == null) {
+            return false;
+        }
+
+        categoriaExistente.setEstado(false);
+        repo.save(categoriaExistente);
+        return true;
+    }
+
+    public boolean reactivar(Long id) {
+        Categoria categoriaExistente = repo.findById(id).orElse(null);
+
+        if (categoriaExistente == null) {
+            return false;
+        }
+
+        categoriaExistente.setEstado(true);
+        repo.save(categoriaExistente);
+        return true;
     }
 
     private boolean tieneTexto(String valor) {
