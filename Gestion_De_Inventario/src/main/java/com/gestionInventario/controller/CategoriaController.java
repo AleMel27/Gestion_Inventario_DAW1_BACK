@@ -32,10 +32,11 @@ public class CategoriaController {
 	@GetMapping
 	public ResponseEntity<PageDTO<CategoriaDTO>> listar(
 			@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "true") Boolean estado) {
+			@RequestParam(defaultValue = "true") Boolean estado,
+			@RequestParam(required = false) String nombre) {
 		int size = 10;
 		int pageIndex = Math.max(page - 1, 0);
-		Page<Categoria> categorias = service.listarPorEstado(estado, PageRequest.of(pageIndex, size));
+		Page<Categoria> categorias = service.listarConFiltros(estado, nombre, PageRequest.of(pageIndex, size));
 		List<CategoriaDTO> dtos = categorias.getContent()
 				.stream()
 				.map(mapper::convertirADto)

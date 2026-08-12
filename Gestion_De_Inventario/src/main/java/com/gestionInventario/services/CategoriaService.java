@@ -3,6 +3,7 @@ package com.gestionInventario.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.gestionInventario.model.Categoria;
@@ -14,8 +15,18 @@ public class CategoriaService {
     @Autowired
     private ICategoriaRepository repo;
 
-    public Page<Categoria> listarPorEstado(Boolean estado, Pageable pageable) {
-        return repo.findByEstado(estado, pageable);
+    public Page<Categoria> listarConFiltros(Boolean estado, String nombre, Pageable pageable) {
+        Specification<Categoria> spec = (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("estado"), estado);
+
+        if (tieneTexto(nombre)) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("nombre")),
+                            "%" + nombre.trim().toLowerCase() + "%"));
+        }
+
+        return repo.findAll(spec, pageable);
     }
 
     public Categoria obtenerPorId(Long id) {
