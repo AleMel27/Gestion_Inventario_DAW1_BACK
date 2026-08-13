@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.gestionInventario.model.TipoComprobante;
 
 @Repository
-public interface ITipoComprobanteRepository extends JpaRepository<TipoComprobante, Integer> {
+public interface ITipoComprobanteRepository extends JpaRepository<TipoComprobante, Short> {
 }

@@ -72,6 +72,5 @@ public class Usuario {
     @UpdateTimestamp
     @Column(name = "fecha_actualizacion", nullable = false)
     private LocalDateTime fechaActualizacion;
-
-	
+    
 }

@@ -20,7 +20,7 @@ public class TipoComprobante {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tipo_comprobante", columnDefinition = "smallint unsigned")
-    private Integer idTipoComprobante;
+    private Short idTipoComprobante;
 
     @Column(nullable = false, unique = true, length = 20)
     private String codigo;

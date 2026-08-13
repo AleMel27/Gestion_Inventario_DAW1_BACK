@@ -1,6 +1,6 @@
 package com.gestionInventario.security;
 
-import org.springframework.context.annotation.Bean;
+//import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 // Descomentar cuando implementen seguridad

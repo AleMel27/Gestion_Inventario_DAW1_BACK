@@ -4,9 +4,13 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Compra;
 import com.gestionInventario.model.DetalleCompra;
@@ -42,6 +46,37 @@ public class CompraService {
     @Autowired
     private ITipoComprobanteRepository tipoComprobanteRepo;
 
+    // Listado paginado de Compras con filtros dinámicos
+    public Page<Compra> listarConFiltros(
+            String estado,
+            String numeroComprobante,
+            Long idProveedor,
+            Pageable pageable) {
+
+        Specification<Compra> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (tieneTexto(estado)) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(cb.lower(root.get("estado")), estado.trim().toLowerCase()));
+        }
+
+        if (tieneTexto(numeroComprobante)) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("numeroComprobante")), "%" + numeroComprobante.trim().toLowerCase() + "%"));
+        }
+
+        if (idProveedor != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("proveedor").get("idProveedor"), idProveedor));
+        }
+
+        return compraRepo.findAll(spec, pageable);
+    }
+
+    public Page<Compra> listarPaginado(Pageable pageable) {
+        return compraRepo.findAll(pageable);
+    }
+
     public List<Compra> listarTodas() {
         return compraRepo.findAll();
     }
@@ -50,33 +85,39 @@ public class CompraService {
         return compraRepo.findById(id).orElse(null);
     }
 
-
     @Transactional
     public Compra registrarCompra(Compra compra, Long idAlmacenDestino, List<DetalleCompra> detalles) {
-        
+
         asignarTipoComprobanteExistente(compra);
-        if (compra.getEstado() == null || compra.getEstado().trim().isEmpty()) {
+
+        if (!tieneTexto(compra.getEstado())) {
             compra.setEstado("PENDIENTE");
         }
-        compra.setTotal(BigDecimal.ZERO);
+
+        // Calcular el total acumulado de la compra
+        BigDecimal totalCompra = detalles.stream()
+                .map(d -> d.getSubtotal() != null ? d.getSubtotal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        compra.setTotal(totalCompra);
         Compra compraGuardada = compraRepo.save(compra);
 
         Almacen almacenDestino = new Almacen();
         almacenDestino.setIdAlmacen(idAlmacenDestino);
 
         TipoMovimiento tipoEntrada = tipoMovimientoRepo.findByCodigo("ENTRADA")
-                .orElseThrow(() -> new RuntimeException("Tipo de movimiento ENTRADA no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de movimiento 'ENTRADA' no encontrado"));
 
         for (DetalleCompra detalle : detalles) {
-            
+
             detalle.setCompra(compraGuardada);
             detalleRepo.save(detalle);
 
             BigDecimal stockAnterior = BigDecimal.ZERO;
-            
+
             Inventario inventario = inventarioRepo
-                .findByProductoIdProductoAndAlmacenIdAlmacen(detalle.getProducto().getIdProducto(), idAlmacenDestino)
-                .orElse(null);
+                    .findByProductoIdProductoAndAlmacenIdAlmacen(detalle.getProducto().getIdProducto(), idAlmacenDestino)
+                    .orElse(null);
 
             if (inventario == null) {
                 inventario = new Inventario();
@@ -112,12 +153,20 @@ public class CompraService {
     private void asignarTipoComprobanteExistente(Compra compra) {
         if (compra.getTipoComprobante() == null
                 || compra.getTipoComprobante().getIdTipoComprobante() == null) {
-            throw new RuntimeException("El tipo de comprobante es obligatorio");
+            throw new IllegalArgumentException("El tipo de comprobante es obligatorio");
         }
 
+        Number idNum = (Number) compra.getTipoComprobante().getIdTipoComprobante();
+        Short idShort = idNum.shortValue();
+
         TipoComprobante tipoComprobante = tipoComprobanteRepo
-                .findById(compra.getTipoComprobante().getIdTipoComprobante())
-                .orElseThrow(() -> new RuntimeException("Tipo de comprobante no encontrado"));
+                .findById(idShort)
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de comprobante no encontrado con ID: " + idShort));
+
         compra.setTipoComprobante(tipoComprobante);
+    }
+
+    private boolean tieneTexto(String valor) {
+        return valor != null && !valor.trim().isEmpty();
     }
 }
