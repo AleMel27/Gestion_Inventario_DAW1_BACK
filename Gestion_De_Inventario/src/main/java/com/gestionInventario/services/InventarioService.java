@@ -3,6 +3,11 @@ package com.gestionInventario.services;
 import java.math.BigDecimal;
 import java.util.List;
 
+
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +30,38 @@ public class InventarioService {
     private final IProductoRepository productoRepo;
     private final IAlmacenRepository almacenRepo;
 
+    
+    
+    
+    
+ // =========================================================================
+    // NUEVO MÉTODO: Paginado dinámico con filtros por almacén y nombre de producto
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public Page<Inventario> listarConFiltros(Long idAlmacen, String nombreProducto, Pageable pageable) {
+        Specification<Inventario> spec = (root, query, cb) -> cb.conjunction();
+
+        if (idAlmacen != null) {
+            spec = spec.and((root, query, cb) -> 
+                cb.equal(root.get("almacen").get("idAlmacen"), idAlmacen)
+            );
+        }
+
+        if (StringUtils.hasText(nombreProducto)) {
+            spec = spec.and((root, query, cb) -> 
+                cb.like(cb.lower(root.get("producto").get("nombre")), "%" + nombreProducto.trim().toLowerCase() + "%")
+            );
+        }
+
+        return inventarioRepo.findAll(spec, pageable);
+    }
+    // =========================================================================
+    
+    
+    
+    
+    
+    
     // Listar todo el inventario
     @Transactional(readOnly = true)
     public List<Inventario> listarTodos() {

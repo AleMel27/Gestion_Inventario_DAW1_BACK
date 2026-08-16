@@ -1,6 +1,15 @@
 package com.gestionInventario.controller;
 
 import java.util.List;
+
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import com.gestionInventario.dtos.response.PageDTO;
+
+
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +26,33 @@ public class AlmacenController {
     @Autowired
     private AlmacenService service;
 
+ // ==========================================
+    // MODIFICADO: Paginación agregada al GetMapping
+    // ==========================================
     @GetMapping
-    public ResponseEntity<List<Almacen>> listar() {
-        return ResponseEntity.ok(service.listarTodos());
+    public ResponseEntity<PageDTO<Almacen>> listar(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "true") Boolean estado,
+            @RequestParam(required = false) String nombre) {
+
+        int size = 10;
+        int pageIndex = Math.max(page - 1, 0);
+
+        Page<Almacen> almacenes = service.listarConFiltros(
+                estado,
+                nombre,
+                PageRequest.of(pageIndex, size));
+
+        PageDTO<Almacen> response = new PageDTO<>(
+                almacenes.getContent(),
+                almacenes.getTotalElements(),
+                almacenes.getTotalPages(),
+                almacenes.getNumber() + 1,
+                almacenes.getSize());
+
+        return ResponseEntity.ok(response);
     }
+    // ==========================================
 
     @GetMapping("/{id}")
     public ResponseEntity<Almacen> obtenerPorId(@PathVariable Long id) {

@@ -3,6 +3,14 @@ package com.gestionInventario.services;
 import java.util.List;
 import java.util.Optional;
 
+
+import org.springframework.data.domain.Page; // AGREGADO
+import org.springframework.data.domain.Pageable; // AGREGADO
+import org.springframework.data.jpa.domain.Specification; // AGREGADO
+import org.springframework.transaction.annotation.Transactional; // AGREGADO
+import org.springframework.util.StringUtils; // AGREGADO
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +42,31 @@ public class UsuarioService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     */
+    
+    
+    
+    
+    
+ // =========================================================================
+    // MÉTODO AGREGADO: Paginado dinámico con filtro por nombres, apellidos o correo
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public Page<Usuario> listarConFiltros(String buscar, Pageable pageable) {
+        Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
+
+        if (StringUtils.hasText(buscar)) {
+            String filtro = "%" + buscar.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("nombres")), filtro),
+                cb.like(cb.lower(root.get("apellidos")), filtro),
+                cb.like(cb.lower(root.get("correo")), filtro)
+            ));
+        }
+
+        return repo.findAll(spec, pageable);
+    }
+    // =========================================================================
+    
 
     public List<Usuario> listarTodos() {
         return repo.findAll();
@@ -55,6 +88,12 @@ public class UsuarioService {
         asignarRolExistente(usuario);
         return repo.save(usuario);
     }
+    
+    
+    
+    
+    
+    
 
     public Usuario actualizar(Long id, Usuario usuario) {
         Optional<Usuario> usuarioExistenteOpt = repo.findById(id);

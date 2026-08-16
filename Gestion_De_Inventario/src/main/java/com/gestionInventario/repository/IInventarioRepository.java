@@ -3,6 +3,9 @@ package com.gestionInventario.repository;
 import java.util.List;
 import java.util.Optional;
 
+
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor; // IMPORT AGREGADO
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +16,7 @@ import org.springframework.stereotype.Repository;
 import com.gestionInventario.model.Inventario;
 
 @Repository
-public interface IInventarioRepository extends JpaRepository<Inventario, Long> {
+public interface IInventarioRepository extends JpaRepository<Inventario, Long>, JpaSpecificationExecutor<Inventario> {
 
     Optional<Inventario> findByProductoIdProductoAndAlmacenIdAlmacen(Long idProducto, Long idAlmacen);
 
