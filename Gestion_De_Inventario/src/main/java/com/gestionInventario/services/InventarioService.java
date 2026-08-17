@@ -3,15 +3,12 @@ package com.gestionInventario.services;
 import java.math.BigDecimal;
 import java.util.List;
 
-
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.util.StringUtils;
-
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Inventario;
@@ -30,9 +27,44 @@ public class InventarioService {
     private final IProductoRepository productoRepo;
     private final IAlmacenRepository almacenRepo;
 
- // =========================================================================
-    // NUEVO MÉTODO: Paginado dinámico con filtros por almacén y nombre de producto
+    @Transactional(readOnly = true)
+    public Inventario obtenerPorId(Long id) {
+        return inventarioRepo.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public Inventario registrar(Inventario inventario) {
+        Long idProducto = inventario.getProducto().getIdProducto();
+        Long idAlmacen = inventario.getAlmacen().getIdAlmacen();
+
+        Producto producto = productoRepo.findById(idProducto)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + idProducto));
+        Almacen almacen = almacenRepo.findById(idAlmacen)
+                .orElseThrow(() -> new RuntimeException("Almacén no encontrado: " + idAlmacen));
+
+        inventario.setProducto(producto);
+        inventario.setAlmacen(almacen);
+
+        return inventarioRepo.save(inventario);
+    }
+
+    @Transactional
+    public Inventario actualizar(Long id, Inventario inventario) {
+        Inventario existente = inventarioRepo.findById(id).orElse(null);
+
+        if (existente != null) {
+            if (inventario.getStockActual() != null) {
+                existente.setStockActual(inventario.getStockActual());
+            }
+            return inventarioRepo.save(existente);
+        }
+        return null;
+    }
+
     // =========================================================================
+    // PAGINADO Y CONSULTAS DIVERSAS
+    // =========================================================================
+
     @Transactional(readOnly = true)
     public Page<Inventario> listarConFiltros(Long idAlmacen, String nombreProducto, Pageable pageable) {
         Specification<Inventario> spec = (root, query, cb) -> cb.conjunction();
@@ -51,8 +83,7 @@ public class InventarioService {
 
         return inventarioRepo.findAll(spec, pageable);
     }
-    // =========================================================================
-        
+
     // Listar todo el inventario
     @Transactional(readOnly = true)
     public List<Inventario> listarTodos() {
