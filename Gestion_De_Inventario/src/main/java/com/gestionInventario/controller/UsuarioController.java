@@ -1,4 +1,5 @@
 package com.gestionInventario.controller;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,7 +12,6 @@ import com.gestionInventario.dtos.response.UsuarioDTO;
 import com.gestionInventario.mapper.UsuarioMapper;
 
 import jakarta.validation.Valid;
-
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

@@ -2,16 +2,12 @@ package com.gestionInventario.services;
 
 import java.util.List;
 
-
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
-
-
+import org.springframework.transaction.annotation.Transactional;
 
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.repository.IAlmacenRepository;
@@ -21,57 +17,70 @@ public class AlmacenService {
 
     @Autowired
     private IAlmacenRepository repo;
-    
-    
-    
-    
-    
- // ==========================================
-    // NUEVO: Método agregado para el paginado --------------- HECHO
-    // ==========================================
-    
-    
+
+    @Transactional(readOnly = true)
     public Page<Almacen> listarConFiltros(Boolean estado, String nombre, Pageable pageable) {
-        Specification<Almacen> spec = (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("estado"), estado);
+        Specification<Almacen> spec = Specification.allOf();
+
+        if (estado != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("estado"), estado));
+        }
 
         if (nombre != null && !nombre.trim().isEmpty()) {
-            spec = spec.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.like(
-                            criteriaBuilder.lower(root.get("nombre")),
-                            "%" + nombre.trim().toLowerCase() + "%"));
+            spec = spec.and((root, query, cb) -> 
+                cb.like(cb.lower(root.get("nombre")), "%" + nombre.trim().toLowerCase() + "%")
+            );
         }
 
         return repo.findAll(spec, pageable);
     }
-    // ==========================================
-    
-    
-    
-    
 
+    @Transactional(readOnly = true)
     public List<Almacen> listarTodos() {
         return repo.findAll();
     }
 
+    @Transactional(readOnly = true)
     public Almacen obtenerPorId(Long id) {
         return repo.findById(id).orElse(null);
     }
 
+    @Transactional
     public Almacen registrar(Almacen almacen) {
+        almacen.setEstado(true);
         return repo.save(almacen);
     }
 
-    public Almacen actualizar(Long id, Almacen almacen) {
+    @Transactional
+    public Almacen actualizar(Long id, Almacen almacenExistente) {
         if (repo.existsById(id)) {
-            almacen.setIdAlmacen(id);
-            return repo.save(almacen);
+            almacenExistente.setIdAlmacen(id);
+            return repo.save(almacenExistente);
         }
         return null;
     }
 
-    public void eliminar(Long id) {
-        repo.deleteById(id);
+    // ELIMINACIÓN LÓGICA
+    @Transactional
+    public boolean eliminarLogico(Long id) {
+        Almacen almacen = obtenerPorId(id);
+        if (almacen != null) {
+            almacen.setEstado(false);
+            repo.save(almacen);
+            return true;
+        }
+        return false;
     }
 
+    // REACTIVACIÓN
+    @Transactional
+    public boolean reactivar(Long id) {
+        Almacen almacen = obtenerPorId(id);
+        if (almacen != null) {
+            almacen.setEstado(true);
+            repo.save(almacen);
+            return true;
+        }
+        return false;
+    }
 }
