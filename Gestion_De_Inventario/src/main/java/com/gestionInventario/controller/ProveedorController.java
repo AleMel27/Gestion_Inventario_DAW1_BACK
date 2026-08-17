@@ -19,16 +19,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gestionInventario.dtos.request.ProveedorCreateDTO;
-import com.gestionInventario.dtos.request.ProveedorUpdateDTO;
 import com.gestionInventario.dtos.response.PageDTO;
-import com.gestionInventario.dtos.response.ProveedorDTO;
+import com.gestionInventario.model.Proveedor;
 import com.gestionInventario.services.ProveedorService;
 
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/proveedores")
+@RequestMapping("/api/proveedor")
 @CrossOrigin(origins = "*")
 public class ProveedorController {
 
@@ -36,21 +34,27 @@ public class ProveedorController {
     private ProveedorService service;
 
     @GetMapping
-    public ResponseEntity<PageDTO<ProveedorDTO>> listarPaginado(
+    public ResponseEntity<PageDTO<Proveedor>> listarPaginado(
+            @RequestParam(defaultValue = "true") Boolean estado,
+            @RequestParam(required = false) String razonSocial,
+            @RequestParam(required = false) String ruc,
+            @RequestParam(required = false) String telefono,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "idProveedor") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction,
-            @RequestParam(required = false) String buscar) {
+            @RequestParam(defaultValue = "asc") String direction) {
 
         int pageIndex = Math.max(page - 1, 0);
 
-        Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Sort sort = direction.equalsIgnoreCase("asc") 
+                ? Sort.by(sortBy).ascending() 
+                : Sort.by(sortBy).descending();
+        
         Pageable pageable = PageRequest.of(pageIndex, size, sort);
 
-        Page<ProveedorDTO> pagina = service.listarConFiltros(buscar, pageable);
+        Page<Proveedor> pagina = service.listarConFiltros(estado, razonSocial, ruc, telefono, pageable);
 
-        PageDTO<ProveedorDTO> response = new PageDTO<>(
+        PageDTO<Proveedor> response = new PageDTO<>(
                 pagina.getContent(),
                 pagina.getTotalElements(),
                 pagina.getTotalPages(),
@@ -61,8 +65,8 @@ public class ProveedorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProveedorDTO> obtenerPorId(@PathVariable Long id) {
-        ProveedorDTO proveedor = service.obtenerPorId(id);
+    public ResponseEntity<Proveedor> obtenerPorId(@PathVariable Long id) {
+        Proveedor proveedor = service.obtenerPorId(id);
         if (proveedor == null) {
             return ResponseEntity.notFound().build();
         }
@@ -70,13 +74,13 @@ public class ProveedorController {
     }
 
     @PostMapping
-    public ResponseEntity<ProveedorDTO> registrar(@Valid @RequestBody ProveedorCreateDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));
+    public ResponseEntity<Proveedor> registrar(@Valid @RequestBody Proveedor proveedor) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(proveedor));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProveedorDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProveedorUpdateDTO dto) {
-        ProveedorDTO actualizado = service.actualizar(id, dto);
+    public ResponseEntity<Proveedor> actualizar(@PathVariable Long id, @Valid @RequestBody Proveedor proveedor) {
+        Proveedor actualizado = service.actualizar(id, proveedor);
         if (actualizado == null) {
             return ResponseEntity.notFound().build();
         }
@@ -85,13 +89,13 @@ public class ProveedorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        boolean eliminado = service.eliminarLogico(id);
+        boolean eliminado = service.eliminar(id);
         if (!eliminado) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.noContent().build();
     }
-    
+
     @PatchMapping("/{id}/reactivar")
     public ResponseEntity<Void> reactivar(@PathVariable Long id) {
         boolean reactivado = service.reactivar(id);

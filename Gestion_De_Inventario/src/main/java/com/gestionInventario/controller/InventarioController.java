@@ -20,7 +20,7 @@ import com.gestionInventario.services.InventarioService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/inventarios")
+@RequestMapping("/api/inventario")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class InventarioController {
@@ -63,7 +63,7 @@ public class InventarioController {
     }
 
     // Mantenemos tu endpoint previo por ID de almacén para retrocompatibilidad
-    @GetMapping("/almacen/{idAlmacen}")
+    @GetMapping("/inventario/{id}")
     public ResponseEntity<PageDTO<InventarioDTO>> listarPorAlmacen(
             @PathVariable Long idAlmacen,
             @RequestParam(defaultValue = "1") int page) {

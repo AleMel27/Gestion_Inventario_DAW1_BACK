@@ -3,6 +3,8 @@ package com.gestionInventario.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,24 +38,29 @@ public class ProductoController {
 			@RequestParam(required = false) String nombre,
 			@RequestParam(required = false) String codigo,
 			@RequestParam(required = false) Integer idUnidadMedida) {
+		
 		int size = 10;
 		int pageIndex = Math.max(page - 1, 0);
+		
 		Page<Producto> productos = service.listarConFiltros(
 				estado,
 				nombre,
 				codigo,
 				idUnidadMedida,
 				PageRequest.of(pageIndex, size));
+				
 		List<ProductoDTO> dtos = productos.getContent()
 				.stream()
 				.map(mapper::convertirADto)
 				.collect(Collectors.toList());
+				
 		PageDTO<ProductoDTO> response = new PageDTO<>(
 				dtos,
 				productos.getTotalElements(),
 				productos.getTotalPages(),
 				productos.getNumber() + 1,
 				productos.getSize());
+				
 		return ResponseEntity.ok(response);
 	}
 
@@ -67,7 +74,7 @@ public class ProductoController {
 	}
 
 	@PostMapping
-	public ResponseEntity<ProductoDTO> registrar(@RequestBody ProductoCreateDTO dto) {
+	public ResponseEntity<ProductoDTO> registrar(@Valid @RequestBody ProductoCreateDTO dto) {
 		Producto producto = mapper.convertirAEntidad(dto);
 		Producto registrado = service.registrar(producto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(mapper.convertirADto(registrado));
@@ -76,12 +83,17 @@ public class ProductoController {
 	@PutMapping("/{id}")
 	public ResponseEntity<ProductoDTO> actualizar(
 			@PathVariable Long id,
-			@RequestBody ProductoUpdateDTO dto) {
-		Producto producto = mapper.convertirAEntidad(dto);
-		Producto actualizado = service.actualizar(id, producto);
-		if (actualizado == null) {
+			@Valid @RequestBody ProductoUpdateDTO dto) {
+		
+		Producto productoExistente = service.obtenerPorId(id);
+		if (productoExistente == null) {
 			return ResponseEntity.notFound().build();
 		}
+
+		mapper.actualizarEntidadDesdeDto(dto, productoExistente);
+
+		Producto actualizado = service.actualizar(id, productoExistente);
+		
 		return ResponseEntity.ok(mapper.convertirADto(actualizado));
 	}
 

@@ -30,10 +30,6 @@ public class InventarioService {
     private final IProductoRepository productoRepo;
     private final IAlmacenRepository almacenRepo;
 
-    
-    
-    
-    
  // =========================================================================
     // NUEVO MÉTODO: Paginado dinámico con filtros por almacén y nombre de producto
     // =========================================================================

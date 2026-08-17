@@ -15,5 +15,5 @@ public class ProductoDTO {
     private BigDecimal stockMinimo;
     private Boolean estado;
     private ProductoCategoriaDTO categoria;
-    private UnidadMedidaDTO unidadMedida;
+    private ProductoUnidadMedidaDTO unidadMedida;
 }

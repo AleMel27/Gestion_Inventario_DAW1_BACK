@@ -104,6 +104,15 @@ public class UsuarioController {
 		}
 		return ResponseEntity.noContent().build();
     }
+    
+    @PatchMapping("/{id}/reactivar")
+    public ResponseEntity<Void> reactivar(@PathVariable Long id){
+    	boolean reactivado = service.reactivar(id);
+		if (!reactivado) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.noContent().build();
+    }
 
     // ==========================================
     // RUTA PARA POSTMAN / ANGULAR (LOGIN)
