@@ -19,10 +19,6 @@ public class ProveedorService {
     @Autowired
     private IProveedorRepository repo;
 
-    
-    
-    
-    
  // =========================================================================
     // CORREGIDO: Filtro por razonSocial o ruc (coincide con el modelo Proveedor) -------- HECHO
     // =========================================================================

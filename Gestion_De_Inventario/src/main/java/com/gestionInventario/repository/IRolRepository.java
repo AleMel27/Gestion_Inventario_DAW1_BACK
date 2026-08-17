@@ -7,4 +7,5 @@ import com.gestionInventario.model.Rol;
 
 @Repository
 public interface IRolRepository extends JpaRepository<Rol, Short> {
+
 }
