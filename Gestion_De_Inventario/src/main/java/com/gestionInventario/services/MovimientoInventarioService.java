@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Compra;
 import com.gestionInventario.model.Inventario;
@@ -80,21 +81,12 @@ public class MovimientoInventarioService {
                     .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + idCompra));
         }
 
-        Inventario inventario = inventarioRepo
-                .findByProductoIdProductoAndAlmacenIdAlmacen(idProducto, idAlmacen)
-                .orElseGet(() -> {
-                    Inventario nuevo = new Inventario();
-                    nuevo.setProducto(producto);
-                    nuevo.setAlmacen(almacen);
-                    nuevo.setStockActual(BigDecimal.ZERO);
-                    return nuevo;
-                });
+        // 3. Calcular el nuevo stock según el signoStock (+1, -1, 0)
+        short signo = tipoMovimiento.getSignoStock();
+        Inventario inventario = obtenerInventarioParaModificar(idProducto, idAlmacen, signo);
 
         BigDecimal stockAnterior = inventario.getStockActual();
         BigDecimal stockPosterior;
-
-        // 3. Calcular el nuevo stock según el signoStock (+1, -1, 0)
-        short signo = tipoMovimiento.getSignoStock();
 
         if (signo > 0) {
             // Entrada / Incremento
@@ -129,5 +121,46 @@ public class MovimientoInventarioService {
         movimiento.setReferencia(referencia);
 
         return movimientoRepo.save(movimiento);
+    }
+
+    private Inventario obtenerInventarioParaModificar(Long idProducto, Long idAlmacen, short signoStock) {
+        if (signoStock < 0) {
+            return inventarioRepo.findByProductoAndAlmacenForUpdate(idProducto, idAlmacen)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No existe stock para el producto " + idProducto + " en el almacén " + idAlmacen));
+        }
+
+        inventarioRepo.insertarSiNoExiste(idProducto, idAlmacen);
+
+        return inventarioRepo.findByProductoAndAlmacenForUpdate(idProducto, idAlmacen)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No se pudo obtener el inventario para el producto "
+                                + idProducto + " en el almacén " + idAlmacen));
+    }
+
+    @Transactional
+    public MovimientoInventario registrarMovimientoPorCodigo(
+            Long idProducto,
+            Long idAlmacen,
+            Long idUsuario,
+            String codigoTipoMovimiento,
+            BigDecimal cantidad,
+            String motivo,
+            String referencia,
+            Long idCompra) {
+
+        TipoMovimiento tipoMovimiento = tipoMovimientoRepo.findByCodigo(codigoTipoMovimiento)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Tipo de movimiento no encontrado con código: " + codigoTipoMovimiento));
+
+        return registrarMovimiento(
+                idProducto,
+                idAlmacen,
+                idUsuario,
+                tipoMovimiento.getIdTipoMovimiento(),
+                cantidad,
+                motivo,
+                referencia,
+                idCompra);
     }
 }

@@ -6,12 +6,33 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com.gestionInventario.dtos.response.CompraResDTO;
+import com.gestionInventario.dtos.response.CompraResDTO.AlmacenCompraDTO;
+import com.gestionInventario.dtos.response.CompraResDTO.ProveedorCompraDTO;
+import com.gestionInventario.dtos.response.CompraResDTO.TipoComprobanteCompraDTO;
+import com.gestionInventario.dtos.response.CompraResDTO.UsuarioCompraDTO;
+import com.gestionInventario.dtos.response.CompraResumenDTO;
 import com.gestionInventario.dtos.response.DetalleCompraDTO;
 import com.gestionInventario.model.Compra;
 import com.gestionInventario.model.DetalleCompra;
 
 @Component
 public class CompraMapper {
+
+    public CompraResumenDTO convertirAResumenDto(Compra compra) {
+        if (compra == null) return null;
+
+        return CompraResumenDTO.builder()
+                .idCompra(compra.getIdCompra())
+                .proveedor(convertirProveedorADto(compra))
+                .usuario(convertirUsuarioADto(compra))
+                .almacen(convertirAlmacenADto(compra))
+                .tipoComprobante(convertirTipoComprobanteADto(compra))
+                .fechaCompra(compra.getFechaCompra())
+                .numeroComprobante(compra.getNumeroComprobante())
+                .total(compra.getTotal())
+                .estado(compra.getEstado())
+                .build();
+    }
 
     public CompraResDTO convertirADto(Compra compra, List<DetalleCompra> detalles) {
         if (compra == null) return null;
@@ -23,21 +44,12 @@ public class CompraMapper {
                     .collect(Collectors.toList());
         }
 
-        Short idTipoCompShort = null;
-        if (compra.getTipoComprobante() != null && compra.getTipoComprobante().getIdTipoComprobante() != null) {
-            idTipoCompShort = compra.getTipoComprobante().getIdTipoComprobante().shortValue();
-        }
-
         return CompraResDTO.builder()
                 .idCompra(compra.getIdCompra())
-                .idProveedor(compra.getProveedor() != null ? compra.getProveedor().getIdProveedor() : null)
-                .razonSocialProveedor(compra.getProveedor() != null ? compra.getProveedor().getRazonSocial() : null)
-                .idUsuario(compra.getUsuario() != null ? compra.getUsuario().getIdUsuario() : null)
-                .nombreUsuario(compra.getUsuario() != null 
-                        ? compra.getUsuario().getNombres() + " " + compra.getUsuario().getApellidos() 
-                        : null)
-                .idTipoComprobante(idTipoCompShort) // <-- Se pasa la variable con el tipo Short
-                .nombreTipoComprobante(compra.getTipoComprobante() != null ? compra.getTipoComprobante().getNombre() : null)
+                .proveedor(convertirProveedorADto(compra))
+                .usuario(convertirUsuarioADto(compra))
+                .almacen(convertirAlmacenADto(compra))
+                .tipoComprobante(convertirTipoComprobanteADto(compra))
                 .numeroComprobante(compra.getNumeroComprobante())
                 .total(compra.getTotal())
                 .estado(compra.getEstado())
@@ -57,7 +69,53 @@ public class CompraMapper {
                 .nombreProducto(detalle.getProducto() != null ? detalle.getProducto().getNombre() : null)
                 .cantidad(detalle.getCantidad())
                 .costoUnitario(detalle.getCostoUnitario())
-                .subtotal(detalle.getSubtotal())
+                .subtotal(obtenerSubtotal(detalle))
+                .build();
+    }
+
+    private java.math.BigDecimal obtenerSubtotal(DetalleCompra detalle) {
+        if (detalle.getSubtotal() != null) {
+            return detalle.getSubtotal();
+        }
+        if (detalle.getCantidad() == null || detalle.getCostoUnitario() == null) {
+            return null;
+        }
+        return detalle.getCantidad()
+                .multiply(detalle.getCostoUnitario())
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private ProveedorCompraDTO convertirProveedorADto(Compra compra) {
+        if (compra.getProveedor() == null) return null;
+        return ProveedorCompraDTO.builder()
+                .idProveedor(compra.getProveedor().getIdProveedor())
+                .ruc(compra.getProveedor().getRuc())
+                .razonSocial(compra.getProveedor().getRazonSocial())
+                .build();
+    }
+
+    private UsuarioCompraDTO convertirUsuarioADto(Compra compra) {
+        if (compra.getUsuario() == null) return null;
+        return UsuarioCompraDTO.builder()
+                .idUsuario(compra.getUsuario().getIdUsuario())
+                .nombres(compra.getUsuario().getNombres())
+                .apellidos(compra.getUsuario().getApellidos())
+                .build();
+    }
+
+    private AlmacenCompraDTO convertirAlmacenADto(Compra compra) {
+        if (compra.getAlmacen() == null) return null;
+        return AlmacenCompraDTO.builder()
+                .idAlmacen(compra.getAlmacen().getIdAlmacen())
+                .nombre(compra.getAlmacen().getNombre())
+                .build();
+    }
+
+    private TipoComprobanteCompraDTO convertirTipoComprobanteADto(Compra compra) {
+        if (compra.getTipoComprobante() == null) return null;
+        return TipoComprobanteCompraDTO.builder()
+                .idTipoComprobante(compra.getTipoComprobante().getIdTipoComprobante())
+                .nombre(compra.getTipoComprobante().getNombre())
                 .build();
     }
 }

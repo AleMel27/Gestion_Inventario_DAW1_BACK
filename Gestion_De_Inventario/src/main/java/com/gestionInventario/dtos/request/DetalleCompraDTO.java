@@ -1,6 +1,7 @@
 package com.gestionInventario.dtos.request;
 
 import java.math.BigDecimal;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -16,6 +17,6 @@ public class DetalleCompraDTO {
     private BigDecimal cantidad;
 
     @NotNull(message = "El costo unitario es obligatorio")
-    @Positive(message = "El costo unitario debe ser positivo")
+    @DecimalMin(value = "0.00", inclusive = true, message = "El costo unitario no puede ser negativo")
     private BigDecimal costoUnitario;
 }

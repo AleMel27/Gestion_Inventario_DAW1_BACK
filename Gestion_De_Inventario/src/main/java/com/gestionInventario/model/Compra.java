@@ -37,6 +37,10 @@ public class Compra {
 	@JoinColumn(name = "id_usuario", nullable = false)
 	private Usuario usuario;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "id_almacen", nullable = false)
+	private Almacen almacen;
+
 	@CreationTimestamp
 	@Column(name = "fecha_compra", nullable = false, updatable = false)
 	private LocalDateTime fechaCompra;
