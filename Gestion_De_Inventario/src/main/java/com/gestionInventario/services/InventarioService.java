@@ -56,12 +56,7 @@ public class InventarioService {
         return inventarioRepo.findAll(spec, pageable);
     }
     // =========================================================================
-    
-    
-    
-    
-    
-    
+        
     // Listar todo el inventario
     @Transactional(readOnly = true)
     public List<Inventario> listarTodos() {

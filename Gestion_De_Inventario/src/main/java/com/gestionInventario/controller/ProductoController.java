@@ -19,7 +19,7 @@ import com.gestionInventario.model.Producto;
 import com.gestionInventario.services.ProductoService;
 
 @RestController
-@RequestMapping("/api/productos")
+@RequestMapping("/api/producto")
 @CrossOrigin(origins = "*")
 public class ProductoController {
 

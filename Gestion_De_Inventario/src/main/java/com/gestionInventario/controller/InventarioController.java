@@ -3,11 +3,8 @@ package com.gestionInventario.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-
-
-import org.springframework.data.domain.Pageable; // IMPORT AGREGADO
-import org.springframework.data.domain.Sort; // IMPORT AGREGADO
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,7 +28,7 @@ public class InventarioController {
     private final InventarioService service;
     private final InventarioMapper mapper;
 
- // =========================================================================
+    // =========================================================================
     // AGREGADO: Endpoint principal para listar con paginado y filtros opcionales ---- HECHO 
     // ========================================================================= 
     @GetMapping
