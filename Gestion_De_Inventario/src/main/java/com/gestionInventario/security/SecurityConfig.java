@@ -1,21 +1,29 @@
 package com.gestionInventario.security;
 
+import org.springframework.context.annotation.Bean;
 //import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 // Descomentar cuando implementen seguridad
-/*
+
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-*/
+
 
 @Configuration
 // @EnableWebSecurity
 public class SecurityConfig {
+	
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-    /*
+    
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -29,6 +37,10 @@ public class SecurityConfig {
                 // Rutas públicas
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/usuarios").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/**").permitAll()
+                
 
                 // Productos
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
@@ -41,6 +53,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-    */
+
 
 }

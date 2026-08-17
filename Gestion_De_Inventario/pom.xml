@@ -48,12 +48,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- LE QUITAMOS SEGURIDAD TEMPORALMENTE PARA QUE LEVANTE
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-		-->
+		
 
 		<!-- Validaciones de data -->
 		<dependency>

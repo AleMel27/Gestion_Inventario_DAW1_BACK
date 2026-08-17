@@ -7,12 +7,17 @@ import java.util.Optional;
 import org.springframework.data.domain.Page; // AGREGADO
 import org.springframework.data.domain.Pageable; // AGREGADO
 import org.springframework.data.jpa.domain.Specification; // AGREGADO
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional; // AGREGADO
 import org.springframework.util.StringUtils; // AGREGADO
 
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.gestionInventario.dtos.request.UsuarioCreateDTO;
+import com.gestionInventario.dtos.request.UsuarioUpdateDTO;
+import com.gestionInventario.model.Producto;
 
 // ==========================================
 // IMPORTS PARA SPRING SECURITY
@@ -34,23 +39,13 @@ public class UsuarioService {
     @Autowired
     private IRolRepository rolRepo;
 
-    // ==========================================
-    // SPRING SECURITY
-    // Descomentar cuando creen PasswordEncoderConfig
-    // ==========================================
-    /*
     @Autowired
     private PasswordEncoder passwordEncoder;
-    */
     
-    
-    
-    
-    
+        
  // =========================================================================
     // MÉTODO AGREGADO: Paginado dinámico con filtro por nombres, apellidos o correo
     // =========================================================================
-    @Transactional(readOnly = true)
     public Page<Usuario> listarConFiltros(String buscar, Pageable pageable) {
         Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
 
@@ -77,24 +72,13 @@ public class UsuarioService {
     }
 
     public Usuario registrar(Usuario usuario) {
-        // ==========================================
-        // SPRING SECURITY
-        // Encriptar la contraseña antes de guardar
-        // ==========================================
-        /*
         String passwordCodificado = passwordEncoder.encode(usuario.getPasswordHash());
         usuario.setPasswordHash(passwordCodificado);
-        */
+        
         asignarRolExistente(usuario);
         return repo.save(usuario);
     }
     
-    
-    
-    
-    
-    
-
     public Usuario actualizar(Long id, Usuario usuario) {
         Optional<Usuario> usuarioExistenteOpt = repo.findById(id);
         
@@ -108,52 +92,50 @@ public class UsuarioService {
             usuarioExistente.setRol(usuario.getRol());
             usuarioExistente.setEstado(usuario.getEstado());
             
-            // 2. Lógica inteligente para la contraseña
-            // Si el cliente envía una contraseña nueva (no está vacía/nula) y es diferente a la actual
+
             if (usuario.getPasswordHash() != null && !usuario.getPasswordHash().trim().isEmpty()) {
                 
-                // ==========================================
-                // MODO CON SPRING SECURITY (Descomentar al activar seguridad)
-                // ==========================================
-                /*
-                // Solo encriptamos si no coincide con el hash almacenado (es decir, viene en texto plano desde el formulario)
                 if (!usuario.getPasswordHash().equals(usuarioExistente.getPasswordHash())) {
                     String passwordCodificado = passwordEncoder.encode(usuario.getPasswordHash());
                     usuarioExistente.setPasswordHash(passwordCodificado);
                 }
-                */
-                
-                // ==========================================
-                // MODO SIN SECURITY (Temporal)
-                // ==========================================
-                // Quitar esta línea de abajo cuando actives Spring Security
+               
+               
                 usuarioExistente.setPasswordHash(usuario.getPasswordHash());
             }
-            // NOTA: Si usuario.getPasswordHash() viene vacío o nulo, NO se altera el passwordHash existente.
 
-            // 3. Guardamos la entidad persistida/actualizada
             asignarRolExistente(usuarioExistente);
             return repo.save(usuarioExistente);
         }
         
-        return null; // O puedes lanzar una excepción personalizada si prefieres
+        return null; 
     }
 
-    public void eliminar(Long id) {
-        repo.deleteById(id);
+    public boolean eliminar(Long id) {
+        Usuario usuarioExistente = repo.findById(id).orElse(null);
+
+        if (usuarioExistente == null) {
+            return false;
+        }
+
+        usuarioExistente.setEstado(false);
+        repo.save(usuarioExistente);
+        return true;
     }
 
     private void asignarRolExistente(Usuario usuario) {
         if (usuario.getRol() == null || usuario.getRol().getIdRol() == null) {
             throw new RuntimeException("El rol es obligatorio");
         }
-
-        Rol rol = rolRepo.findById(usuario.getRol().getIdRol())
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-        usuario.setRol(rol);
+        
+        usuario.setRol(
+                obtenerRolExistente(
+                    usuario.getRol().getIdRol()
+                )
+            );
     }
     
-    /*
+    
     public Usuario login(Usuario usuario) {
         Usuario encontrado = repo.findByCorreo(usuario.getCorreo())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -163,5 +145,13 @@ public class UsuarioService {
         }
         return encontrado;
     }
-    */
+    
+    private Rol obtenerRolExistente(Short idRol) {
+
+        return rolRepo.findById(idRol)
+                .orElseThrow(
+                    () -> new RuntimeException("El rol no existe")
+                );
+    }
+    
 }
