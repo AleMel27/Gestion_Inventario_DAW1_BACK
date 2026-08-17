@@ -3,13 +3,10 @@ package com.gestionInventario.services;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 import org.springframework.data.domain.Page; // AGREGADO
 import org.springframework.data.domain.Pageable; // AGREGADO
 import org.springframework.data.jpa.domain.Specification; // AGREGADO
 import org.springframework.util.StringUtils; // AGREGADO
-
-
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,68 +22,36 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UnidadMedidaService {
 
-    private final IUnidadMedidaRepository repository;
-    private final UnidadMedidaMapper mapper;
-    
-    
-    
-    
- // =========================================================================
-    // MÉTODO AGREGADO: Paginado dinámico con filtro por nombre, código o abreviatura ---- HECHO
-    // =========================================================================
-    @Transactional(readOnly = true)
-    public Page<UnidadMedidaDTO> listarConFiltros(String buscar, Pageable pageable) {
-        Specification<UnidadMedida> spec = (root, query, cb) -> cb.conjunction();
+	private final IUnidadMedidaRepository repository;
+	private final UnidadMedidaMapper mapper;
 
-        if (StringUtils.hasText(buscar)) {
-            String filtro = "%" + buscar.trim().toLowerCase() + "%";
-            spec = spec.and((root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("nombre")), filtro),
-                cb.like(cb.lower(root.get("codigo")), filtro),
-                cb.like(cb.lower(root.get("abreviatura")), filtro)
-            ));
-        }
+	// =========================================================================
+	// MÉTODO AGREGADO: Paginado dinámico con filtro por nombre, código o
+	// abreviatura ---- HECHO
+	// =========================================================================
+	@Transactional(readOnly = true)
+	public Page<UnidadMedidaDTO> listarConFiltros(String buscar, Pageable pageable) {
+		Specification<UnidadMedida> spec = (root, query, cb) -> cb.conjunction();
 
-        return repository.findAll(spec, pageable).map(mapper::convertirADto);
-    }
-    // =========================================================================
-    
-    
+		if (StringUtils.hasText(buscar)) {
+			String filtro = "%" + buscar.trim().toLowerCase() + "%";
+			spec = spec.and((root, query, cb) -> cb.or(cb.like(cb.lower(root.get("nombre")), filtro),
+					cb.like(cb.lower(root.get("codigo")), filtro), cb.like(cb.lower(root.get("abreviatura")), filtro)));
+		}
 
-    @Transactional(readOnly = true)
-    public List<UnidadMedidaDTO> listarTodos() {
-        return repository.findAll()
-                .stream()
-                .map(mapper::convertirADto)
-                .collect(Collectors.toList());
-    }
+		return repository.findAll(spec, pageable).map(mapper::convertirADto);
+	}
+	// =========================================================================
 
-    @Transactional(readOnly = true)
-    public UnidadMedidaDTO obtenerPorId(Integer id) {
-        UnidadMedida unidad = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Unidad de medida no encontrada con ID: " + id));
-        return mapper.convertirADto(unidad);
-    }
+	@Transactional(readOnly = true)
+	public List<UnidadMedidaDTO> listarTodos() {
+		return repository.findAll().stream().map(mapper::convertirADto).collect(Collectors.toList());
+	}
 
-    @Transactional
-    public UnidadMedidaDTO guardar(UnidadMedidaDTO dto) {
-        UnidadMedida entidad = mapper.convertirAEntidad(dto);
-        UnidadMedida guardado = repository.save(entidad);
-        return mapper.convertirADto(guardado);
-    }
-
-    @Transactional
-    public UnidadMedidaDTO actualizar(Integer id, UnidadMedidaDTO dto) {
-        UnidadMedida existente = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Unidad de medida no encontrada con ID: " + id));
-
-        existente.setCodigo(dto.getCodigo());
-        existente.setNombre(dto.getNombre());
-        existente.setAbreviatura(dto.getAbreviatura());
-        existente.setDescripcion(dto.getDescripcion());
-        if (dto.getPermiteDecimales() != null) existente.setPermiteDecimales(dto.getPermiteDecimales());
-        if (dto.getEstado() != null) existente.setEstado(dto.getEstado());
-
-        return mapper.convertirADto(repository.save(existente));
-    }
+	@Transactional(readOnly = true)
+	public UnidadMedidaDTO obtenerPorId(Integer id) {
+		UnidadMedida unidad = repository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Unidad de medida no encontrada con ID: " + id));
+		return mapper.convertirADto(unidad);
+	}
 }

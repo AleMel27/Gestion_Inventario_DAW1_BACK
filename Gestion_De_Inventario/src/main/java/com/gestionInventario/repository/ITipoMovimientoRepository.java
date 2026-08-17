@@ -10,5 +10,5 @@ import com.gestionInventario.model.TipoMovimiento;
 @Repository
 public interface ITipoMovimientoRepository extends JpaRepository<TipoMovimiento, Integer> {
 
-    Optional<TipoMovimiento> findByCodigo(String codigo);
+    Optional<TipoMovimiento> findByNombre(String codigo);
 }

@@ -5,10 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import com.gestionInventario.dtos.response.PageDTO;
-import jakarta.validation.Valid;
 
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,15 +50,5 @@ public class UnidadMedidaController {
     @GetMapping("/{id}")
     public ResponseEntity<UnidadMedidaDTO> obtenerPorId(@PathVariable Integer id) {
         return ResponseEntity.ok(service.obtenerPorId(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<UnidadMedidaDTO> crear(@Valid @RequestBody UnidadMedidaDTO dto) {
-        return new ResponseEntity<>(service.guardar(dto), HttpStatus.CREATED);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<UnidadMedidaDTO> actualizar(@PathVariable Integer id, @Valid @RequestBody UnidadMedidaDTO dto) {
-        return ResponseEntity.ok(service.actualizar(id, dto));
     }
 }

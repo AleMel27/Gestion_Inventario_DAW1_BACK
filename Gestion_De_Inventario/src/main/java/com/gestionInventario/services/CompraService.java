@@ -105,7 +105,7 @@ public class CompraService {
         Almacen almacenDestino = new Almacen();
         almacenDestino.setIdAlmacen(idAlmacenDestino);
 
-        TipoMovimiento tipoEntrada = tipoMovimientoRepo.findByCodigo("ENTRADA")
+        TipoMovimiento tipoEntrada = tipoMovimientoRepo.findByNombre("ENTRADA")
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de movimiento 'ENTRADA' no encontrado"));
 
         for (DetalleCompra detalle : detalles) {
