@@ -39,16 +39,12 @@ public class AlmacenMapper {
         return almacen;
     }
 
-    public Almacen convertirAEntidad(AlmacenUpdateDTO dto) {
-        if (dto == null) {
-            return null;
+    public void actualizarEntidadDesdeDto(AlmacenUpdateDTO dto, Almacen entidad) {
+        if (dto == null || entidad == null) {
+            return;
         }
-
-        Almacen almacen = new Almacen();
-        almacen.setNombre(dto.getNombre());
-        almacen.setUbicacion(dto.getUbicacion());
-        almacen.setDescripcion(dto.getDescripcion());
-
-        return almacen;
+        entidad.setNombre(dto.getNombre());
+        entidad.setUbicacion(dto.getUbicacion());
+        entidad.setDescripcion(dto.getDescripcion());
     }
 }
