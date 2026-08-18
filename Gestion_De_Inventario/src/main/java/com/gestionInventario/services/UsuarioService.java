@@ -1,147 +1,110 @@
 package com.gestionInventario.services;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.StringUtils; // AGREGADO
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-// ==========================================
-// IMPORTS PARA SPRING SECURITY
-// Descomentar cuando implementen autenticación
-// ==========================================
-// import org.springframework.security.crypto.password.PasswordEncoder;
-
+import com.gestionInventario.dtos.request.UsuarioCreateDTO;
+import com.gestionInventario.dtos.request.UsuarioUpdateDTO;
+import com.gestionInventario.dtos.response.UsuarioDTO;
+import com.gestionInventario.exception.ResourceNotFoundException;
+import com.gestionInventario.mapper.UsuarioMapper;
 import com.gestionInventario.model.Rol;
 import com.gestionInventario.model.Usuario;
 import com.gestionInventario.repository.IRolRepository;
 import com.gestionInventario.repository.IUsuarioRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class UsuarioService {
 
-	@Autowired
-	private IUsuarioRepository repo;
+    private final IUsuarioRepository repo;
+    private final IRolRepository rolRepo;
+    private final PasswordEncoder passwordEncoder;
+    private final UsuarioMapper mapper;
 
-	@Autowired
-	private IRolRepository rolRepo;
+    public Page<UsuarioDTO> listarConFiltros(String buscar, Pageable pageable) {
+        Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
 
-	@Autowired
-	private PasswordEncoder passwordEncoder;
+        if (StringUtils.hasText(buscar)) {
+            String filtro = "%" + buscar.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("nombres")), filtro),
+                    cb.like(cb.lower(root.get("apellidos")), filtro),
+                    cb.like(cb.lower(root.get("correo")), filtro)));
+        }
 
-	// =========================================================================
-	// MÉTODO AGREGADO: Paginado dinámico con filtro por nombres, apellidos o correo
-	// =========================================================================
-	public Page<Usuario> listarConFiltros(String buscar, Pageable pageable) {
-		Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
+        return repo.findAll(spec, pageable).map(mapper::convertirADto);
+    }
 
-		if (StringUtils.hasText(buscar)) {
-			String filtro = "%" + buscar.trim().toLowerCase() + "%";
-			spec = spec.and((root, query, cb) -> cb.or(cb.like(cb.lower(root.get("nombres")), filtro),
-					cb.like(cb.lower(root.get("apellidos")), filtro), cb.like(cb.lower(root.get("correo")), filtro)));
-		}
+    public UsuarioDTO obtenerPorId(Long id) {
+        Usuario usuario = obtenerUsuarioExistente(id);
+        return mapper.convertirADto(usuario);
+    }
 
-		return repo.findAll(spec, pageable);
-	}
-	// =========================================================================
+    public UsuarioDTO registrar(UsuarioCreateDTO dto) {
+        Rol rol = obtenerRolExistente(dto.getIdRol());
 
-	public List<Usuario> listarTodos() {
-		return repo.findAll();
-	}
+        Usuario usuario = mapper.convertirDtoCreate(dto);
+        usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        usuario.setRol(rol);
+        usuario.setEstado(true);
 
-	public Usuario obtenerPorId(Long id) {
-		return repo.findById(id).orElse(null);
-	}
+        Usuario registrado = repo.save(usuario);
+        return mapper.convertirADto(registrado);
+    }
 
-	public Usuario registrar(Usuario usuario) {
-		String passwordCodificado = passwordEncoder.encode(usuario.getPasswordHash());
-		usuario.setPasswordHash(passwordCodificado);
+    public UsuarioDTO actualizar(Long id, UsuarioUpdateDTO dto) {
+        Usuario usuarioExistente = obtenerUsuarioExistente(id);
+        Rol rol = obtenerRolExistente(dto.getIdRol());
 
-		asignarRolExistente(usuario);
-		return repo.save(usuario);
-	}
+        mapper.actualizarEntidad(usuarioExistente, dto);
+        usuarioExistente.setRol(rol);
 
-	public Usuario actualizar(Long id, Usuario usuario) {
-		Optional<Usuario> usuarioExistenteOpt = repo.findById(id);
+        if (StringUtils.hasText(dto.getPassword())) {
+            usuarioExistente.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        }
 
-		if (usuarioExistenteOpt.isPresent()) {
-			Usuario usuarioExistente = usuarioExistenteOpt.get();
+        Usuario actualizado = repo.save(usuarioExistente);
+        return mapper.convertirADto(actualizado);
+    }
 
-			// 1. Mapeamos los campos modificables normales
-			usuarioExistente.setNombres(usuario.getNombres());
-			usuarioExistente.setApellidos(usuario.getApellidos());
-			usuarioExistente.setCorreo(usuario.getCorreo());
-			usuarioExistente.setRol(usuario.getRol());
-			usuarioExistente.setEstado(usuario.getEstado());
+    public boolean eliminar(Long id) {
+        Usuario usuarioExistente = repo.findById(id).orElse(null);
 
-			if (usuario.getPasswordHash() != null && !usuario.getPasswordHash().trim().isEmpty()) {
+        if (usuarioExistente == null) {
+            return false;
+        }
 
-				if (!usuario.getPasswordHash().equals(usuarioExistente.getPasswordHash())) {
-					String passwordCodificado = passwordEncoder.encode(usuario.getPasswordHash());
-					usuarioExistente.setPasswordHash(passwordCodificado);
-				}
+        usuarioExistente.setEstado(false);
+        repo.save(usuarioExistente);
+        return true;
+    }
 
-				usuarioExistente.setPasswordHash(usuario.getPasswordHash());
-			}
+    public boolean reactivar(Long id) {
+        Usuario usuarioExistente = repo.findById(id).orElse(null);
 
-			asignarRolExistente(usuarioExistente);
-			return repo.save(usuarioExistente);
-		}
+        if (usuarioExistente == null) {
+            return false;
+        }
 
-		return null;
-	}
+        usuarioExistente.setEstado(true);
+        repo.save(usuarioExistente);
+        return true;
+    }
 
-	public boolean eliminar(Long id) {
-		Usuario usuarioExistente = repo.findById(id).orElse(null);
+    private Usuario obtenerUsuarioExistente(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El usuario no existe"));
+    }
 
-		if (usuarioExistente == null) {
-			return false;
-		}
-
-		usuarioExistente.setEstado(false);
-		repo.save(usuarioExistente);
-		return true;
-	}
-
-	public boolean reactivar(Long id) {
-		Usuario usuarioExistente = repo.findById(id).orElse(null);
-
-		if (usuarioExistente == null) {
-			return false;
-		}
-
-		usuarioExistente.setEstado(true);
-		repo.save(usuarioExistente);
-		return true;
-	}
-
-	private void asignarRolExistente(Usuario usuario) {
-		if (usuario.getRol() == null || usuario.getRol().getIdRol() == null) {
-			throw new RuntimeException("El rol es obligatorio");
-		}
-
-		usuario.setRol(obtenerRolExistente(usuario.getRol().getIdRol()));
-	}
-
-	public Usuario login(Usuario usuario) {
-		Usuario encontrado = repo.findByCorreo(usuario.getCorreo())
-				.orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-		if (!passwordEncoder.matches(usuario.getPasswordHash(), encontrado.getPasswordHash())) {
-			throw new RuntimeException("Contraseña incorrecta");
-		}
-		return encontrado;
-	}
-
-	private Rol obtenerRolExistente(Short idRol) {
-
-		return rolRepo.findById(idRol).orElseThrow(() -> new RuntimeException("El rol no existe"));
-	}
-
+    private Rol obtenerRolExistente(Short idRol) {
+        return rolRepo.findById(idRol)
+                .orElseThrow(() -> new ResourceNotFoundException("El rol no existe"));
+    }
 }

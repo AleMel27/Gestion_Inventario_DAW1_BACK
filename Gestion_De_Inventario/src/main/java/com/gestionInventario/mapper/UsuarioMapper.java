@@ -6,7 +6,6 @@ import com.gestionInventario.dtos.request.UsuarioCreateDTO;
 import com.gestionInventario.dtos.request.UsuarioUpdateDTO;
 import com.gestionInventario.dtos.response.UsuarioDTO;
 import com.gestionInventario.dtos.response.UsuarioRolDTO;
-import com.gestionInventario.model.Rol;
 import com.gestionInventario.model.Usuario;
 
 @Component
@@ -30,36 +29,18 @@ public class UsuarioMapper {
         return dto;
     }
     
-    public Usuario covertirDtoCreate(UsuarioCreateDTO dto) {
+    public Usuario convertirDtoCreate(UsuarioCreateDTO dto) {
     	Usuario usuario = new Usuario();
     	usuario.setNombres(dto.getNombres());
     	usuario.setApellidos(dto.getApellidos());
     	usuario.setCorreo(dto.getCorreo());
-    	usuario.setPasswordHash(dto.getPassword());
     	usuario.setEstado(true);
-    	
-        if (dto.getIdrol() != null) {
-            Rol rol = new Rol();
-            rol.setIdRol(dto.getIdrol());
-            usuario.setRol(rol);
-        }
-        
         return usuario;
     }
     
-    public Usuario convertirDtoUpdate(UsuarioUpdateDTO dto) {
-    	Usuario usuario = new Usuario();
+    public void actualizarEntidad(Usuario usuario, UsuarioUpdateDTO dto) {
     	usuario.setNombres(dto.getNombres());
     	usuario.setApellidos(dto.getApellidos());
     	usuario.setCorreo(dto.getCorreo());
-    	usuario.setEstado(true);
-    	
-        if (dto.getIdRol() != null) {
-            Rol rol = new Rol();
-            rol.setIdRol(dto.getIdRol());
-            usuario.setRol(rol);
-        }
-        
-        return usuario;
     }
 }

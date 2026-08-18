@@ -10,6 +10,7 @@ import java.util.function.Function;
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import com.gestionInventario.model.Usuario;
@@ -29,6 +30,12 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    @Value("${jwt.issuer}")
+    private String issuer;
+
+    @Value("${jwt.audience}")
+    private String audience;
+
     public String generarToken(Usuario usuario) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("idUsuario", usuario.getIdUsuario());
@@ -43,6 +50,8 @@ public class JwtService {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
+                .issuer(issuer)
+                .audience().add(audience).and()
                 .issuedAt(ahora)
                 .expiration(expiracion)
                 .signWith(obtenerClaveFirma(), Jwts.SIG.HS256)
@@ -61,6 +70,8 @@ public class JwtService {
     public Claims extraerClaims(String token) {
         return Jwts.parser()
                 .verifyWith(obtenerClaveFirma())
+                .requireIssuer(issuer)
+                .requireAudience(audience)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -77,7 +88,23 @@ public class JwtService {
     public boolean validarToken(String token, Usuario usuario) {
         try {
             String correo = extraerCorreo(token);
-            return correo.equals(usuario.getCorreo()) && !esTokenExpirado(token);
+            return correo != null
+                    && !correo.isBlank()
+                    && correo.equals(usuario.getCorreo())
+                    && !esTokenExpirado(token);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    public boolean validarToken(String token, UserDetails userDetails) {
+        try {
+            String correo = extraerCorreo(token);
+            return correo != null
+                    && !correo.isBlank()
+                    && correo.equals(userDetails.getUsername())
+                    && userDetails.isEnabled()
+                    && !esTokenExpirado(token);
         } catch (JwtException | IllegalArgumentException ex) {
             return false;
         }

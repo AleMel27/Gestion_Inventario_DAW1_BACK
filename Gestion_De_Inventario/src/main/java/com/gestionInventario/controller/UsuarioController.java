@@ -9,7 +9,6 @@ import com.gestionInventario.dtos.request.UsuarioCreateDTO;
 import com.gestionInventario.dtos.request.UsuarioUpdateDTO;
 import com.gestionInventario.dtos.response.PageDTO;
 import com.gestionInventario.dtos.response.UsuarioDTO;
-import com.gestionInventario.mapper.UsuarioMapper;
 
 import jakarta.validation.Valid;
 
@@ -18,8 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
-import com.gestionInventario.model.Usuario;
 import com.gestionInventario.services.UsuarioService;
 
 @RestController
@@ -29,9 +26,6 @@ public class UsuarioController {
 
     @Autowired
     private UsuarioService service;
-    
-    @Autowired
-    private UsuarioMapper mapper;
 
  // =========================================================================
     // GET PAGINADO CON FILTROS  HECHO
@@ -53,11 +47,8 @@ public class UsuarioController {
         Pageable pageable =
                 PageRequest.of(pageIndex, size, sort);
 
-        Page<Usuario> pagina =
-                service.listarConFiltros(buscar, pageable);
-
         Page<UsuarioDTO> paginaDTO =
-                pagina.map(mapper::convertirADto);
+                service.listarConFiltros(buscar, pageable);
 
         PageDTO<UsuarioDTO> response = new PageDTO<>(
                 paginaDTO.getContent(),
@@ -71,29 +62,18 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> obtenerPorId(@PathVariable Long id) {
-        Usuario usuario = service.obtenerPorId(id);
-        if (usuario == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(usuario);
+    public ResponseEntity<UsuarioDTO> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(service.obtenerPorId(id));
     }
 
     @PostMapping("/registrar")
     public ResponseEntity<UsuarioDTO> registrar(@Valid @RequestBody UsuarioCreateDTO dto) { // @Valid agregado
-		Usuario usuario = mapper.covertirDtoCreate(dto);
-		Usuario registrado = service.registrar(usuario);
-		return ResponseEntity.status(HttpStatus.CREATED).body(mapper.convertirADto(registrado));
+		return ResponseEntity.status(HttpStatus.CREATED).body(service.registrar(dto));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioDTO> actualizar(@PathVariable Long id, @Valid @RequestBody UsuarioUpdateDTO dto) { // @Valid agregado
-		Usuario usuario = mapper.convertirDtoUpdate(dto);
-		Usuario actualizado = service.actualizar(id, usuario);
-		if (actualizado == null) {
-			return ResponseEntity.notFound().build();
-		}
-		return ResponseEntity.ok(mapper.convertirADto(actualizado));
+		return ResponseEntity.ok(service.actualizar(id, dto));
     }
 
     @DeleteMapping("/{id}")
@@ -114,19 +94,4 @@ public class UsuarioController {
 		return ResponseEntity.noContent().build();
     }
 
-    // ==========================================
-    // RUTA PARA POSTMAN / ANGULAR (LOGIN)
-    // Descomentar cuando habilites el método login en UsuarioService
-    // ==========================================
-    /*
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Usuario usuario) {
-        try {
-            Usuario logueado = service.login(usuario);
-            return ResponseEntity.ok(logueado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        }
-    }
-    */
 }
