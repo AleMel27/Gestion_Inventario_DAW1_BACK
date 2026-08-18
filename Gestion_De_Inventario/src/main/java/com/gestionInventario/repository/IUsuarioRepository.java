@@ -13,6 +13,4 @@ import com.gestionInventario.model.Usuario;
 public interface IUsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpecificationExecutor<Usuario> {
     @EntityGraph(attributePaths = "rol")
     Optional<Usuario> findByCorreo(String correo);
-
-    boolean existsByEstadoTrueAndRolNombre(String nombreRol);
 }

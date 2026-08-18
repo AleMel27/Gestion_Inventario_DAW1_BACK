@@ -1,6 +1,5 @@
 package com.gestionInventario.security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,9 +25,6 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    @Value("${security.bootstrap-admin-enabled:false}")
-    private boolean bootstrapAdminEnabled;
-
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -49,12 +45,7 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
-
-                if (bootstrapAdminEnabled) {
-                    auth.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").permitAll();
-                } else {
-                    auth.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").hasRole(ADMINISTRADOR);
-                }
+                auth.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").hasRole(ADMINISTRADOR);
 
                 auth.requestMatchers("/api/usuarios/**").hasRole(ADMINISTRADOR)
                     .requestMatchers("/api/roles/**").hasRole(ADMINISTRADOR)
