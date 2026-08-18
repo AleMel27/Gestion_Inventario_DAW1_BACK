@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.gestionInventario.exception.BusinessRuleException;
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Inventario;
 import com.gestionInventario.model.Producto;
@@ -29,7 +31,7 @@ public class InventarioService {
 
     @Transactional(readOnly = true)
     public Inventario obtenerPorId(Long id) {
-        return inventarioRepo.findById(id).orElse(null);
+        return obtenerInventarioExistente(id);
     }
 
     @Transactional
@@ -38,9 +40,9 @@ public class InventarioService {
         Long idAlmacen = inventario.getAlmacen().getIdAlmacen();
 
         Producto producto = productoRepo.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + idProducto));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + idProducto));
         Almacen almacen = almacenRepo.findById(idAlmacen)
-                .orElseThrow(() -> new RuntimeException("Almacén no encontrado: " + idAlmacen));
+                .orElseThrow(() -> new ResourceNotFoundException("Almacén no encontrado: " + idAlmacen));
 
         inventario.setProducto(producto);
         inventario.setAlmacen(almacen);
@@ -50,15 +52,12 @@ public class InventarioService {
 
     @Transactional
     public Inventario actualizar(Long id, Inventario inventario) {
-        Inventario existente = inventarioRepo.findById(id).orElse(null);
+        Inventario existente = obtenerInventarioExistente(id);
 
-        if (existente != null) {
-            if (inventario.getStockActual() != null) {
-                existente.setStockActual(inventario.getStockActual());
-            }
-            return inventarioRepo.save(existente);
+        if (inventario.getStockActual() != null) {
+            existente.setStockActual(inventario.getStockActual());
         }
-        return null;
+        return inventarioRepo.save(existente);
     }
 
     // =========================================================================
@@ -94,7 +93,7 @@ public class InventarioService {
     @Transactional(readOnly = true)
     public List<Inventario> listarPorAlmacen(Long idAlmacen) {
         if (!almacenRepo.existsById(idAlmacen)) {
-            throw new RuntimeException("El almacén especificado no existe: " + idAlmacen);
+            throw new ResourceNotFoundException("El almacén especificado no existe: " + idAlmacen);
         }
         return inventarioRepo.findByAlmacenIdAlmacen(idAlmacen);
     }
@@ -103,7 +102,7 @@ public class InventarioService {
     @Transactional(readOnly = true)
     public Page<Inventario> listarPorAlmacenPaginado(Long idAlmacen, Pageable pageable) {
         if (!almacenRepo.existsById(idAlmacen)) {
-            throw new RuntimeException("El almacén especificado no existe: " + idAlmacen);
+            throw new ResourceNotFoundException("El almacén especificado no existe: " + idAlmacen);
         }
         return inventarioRepo.findByAlmacenIdAlmacen(idAlmacen, pageable);
     }
@@ -112,7 +111,7 @@ public class InventarioService {
     @Transactional(readOnly = true)
     public Inventario obtenerPorProductoYAlmacen(Long idProducto, Long idAlmacen) {
         return inventarioRepo.findByProductoIdProductoAndAlmacenIdAlmacen(idProducto, idAlmacen)
-                .orElseThrow(() -> new RuntimeException("No existe registro de inventario para el producto " 
+                .orElseThrow(() -> new ResourceNotFoundException("No existe registro de inventario para el producto " 
                         + idProducto + " en el almacén " + idAlmacen));
     }
 
@@ -134,7 +133,7 @@ public class InventarioService {
     @Transactional(readOnly = true)
     public List<Inventario> obtenerAlertasStockBajoPorAlmacen(Long idAlmacen) {
         if (!almacenRepo.existsById(idAlmacen)) {
-            throw new RuntimeException("El almacén especificado no existe: " + idAlmacen);
+            throw new ResourceNotFoundException("El almacén especificado no existe: " + idAlmacen);
         }
         return inventarioRepo.obtenerAlertasStockBajoPorAlmacen(idAlmacen);
     }
@@ -143,14 +142,14 @@ public class InventarioService {
     @Transactional
     public Inventario actualizarStockDirecto(Long idProducto, Long idAlmacen, BigDecimal nuevoStock) {
         if (nuevoStock == null || nuevoStock.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("El stock no puede ser un valor negativo");
+            throw new BusinessRuleException("El stock no puede ser un valor negativo");
         }
 
         Producto producto = productoRepo.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + idProducto));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + idProducto));
 
         Almacen almacen = almacenRepo.findById(idAlmacen)
-                .orElseThrow(() -> new RuntimeException("Almacén no encontrado: " + idAlmacen));
+                .orElseThrow(() -> new ResourceNotFoundException("Almacén no encontrado: " + idAlmacen));
 
         Inventario inventario = inventarioRepo
                 .findByProductoIdProductoAndAlmacenIdAlmacen(idProducto, idAlmacen)
@@ -163,5 +162,10 @@ public class InventarioService {
 
         inventario.setStockActual(nuevoStock);
         return inventarioRepo.save(inventario);
+    }
+
+    private Inventario obtenerInventarioExistente(Long id) {
+        return inventarioRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El inventario no existe"));
     }
 }

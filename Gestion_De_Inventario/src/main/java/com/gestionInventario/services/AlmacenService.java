@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.repository.IAlmacenRepository;
 
@@ -41,7 +42,7 @@ public class AlmacenService {
     }
 
     public Almacen obtenerPorId(Long id) {
-        return repo.findById(id).orElse(null);
+        return obtenerAlmacenExistente(id);
     }
 
     public Almacen registrar(Almacen almacen) {
@@ -50,32 +51,25 @@ public class AlmacenService {
     }
 
     public Almacen actualizar(Long id, Almacen almacen) {
-        Almacen almacenExistente = repo.findById(id).orElse(null);
+        Almacen almacenExistente = obtenerAlmacenExistente(id);
 
-        if (almacenExistente != null) {
-            if (tieneTexto(almacen.getNombre())) {
-                almacenExistente.setNombre(almacen.getNombre());
-            }
-
-            if (tieneTexto(almacen.getUbicacion())) {
-                almacenExistente.setUbicacion(almacen.getUbicacion());
-            }
-
-            if (tieneTexto(almacen.getDescripcion())) {
-                almacenExistente.setDescripcion(almacen.getDescripcion());
-            }
-
-            return repo.save(almacenExistente);
+        if (tieneTexto(almacen.getNombre())) {
+            almacenExistente.setNombre(almacen.getNombre());
         }
-        return null;
+
+        if (tieneTexto(almacen.getUbicacion())) {
+            almacenExistente.setUbicacion(almacen.getUbicacion());
+        }
+
+        if (tieneTexto(almacen.getDescripcion())) {
+            almacenExistente.setDescripcion(almacen.getDescripcion());
+        }
+
+        return repo.save(almacenExistente);
     }
 
     public boolean eliminar(Long id) {
-        Almacen almacenExistente = repo.findById(id).orElse(null);
-
-        if (almacenExistente == null) {
-            return false;
-        }
+        Almacen almacenExistente = obtenerAlmacenExistente(id);
 
         almacenExistente.setEstado(false);
         repo.save(almacenExistente);
@@ -83,11 +77,7 @@ public class AlmacenService {
     }
 
     public boolean reactivar(Long id) {
-        Almacen almacenExistente = repo.findById(id).orElse(null);
-
-        if (almacenExistente == null) {
-            return false;
-        }
+        Almacen almacenExistente = obtenerAlmacenExistente(id);
 
         almacenExistente.setEstado(true);
         repo.save(almacenExistente);
@@ -95,5 +85,10 @@ public class AlmacenService {
     }
     private boolean tieneTexto(String valor) {
         return valor != null && !valor.trim().isEmpty();
+    }
+
+    private Almacen obtenerAlmacenExistente(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El almacén no existe"));
     }
 }

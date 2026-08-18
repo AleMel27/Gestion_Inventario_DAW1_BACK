@@ -18,6 +18,8 @@ import com.gestionInventario.mapper.AlmacenMapper;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.services.AlmacenService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/almacen")
 @CrossOrigin(origins = "*")
@@ -65,7 +67,7 @@ public class AlmacenController {
 	}
 
 	@PostMapping
-	public ResponseEntity<AlmacenDTO> registrar(@RequestBody AlmacenCreateDTO dto) {
+	public ResponseEntity<AlmacenDTO> registrar(@Valid @RequestBody AlmacenCreateDTO dto) {
 		Almacen almacen = mapper.convertirAEntidad(dto);
 		Almacen registrado = service.registrar(almacen);
 		return ResponseEntity.status(HttpStatus.CREATED).body(mapper.convertirADto(registrado));
@@ -74,7 +76,7 @@ public class AlmacenController {
 	@PutMapping("/{id}")
 	public ResponseEntity<AlmacenDTO> actualizar(
 			@PathVariable Long id,
-			@RequestBody AlmacenUpdateDTO dto) {
+			@Valid @RequestBody AlmacenUpdateDTO dto) {
 		Almacen almacenExistente = service.obtenerPorId(id);
 		if (almacenExistente == null) {
 			return ResponseEntity.notFound().build();

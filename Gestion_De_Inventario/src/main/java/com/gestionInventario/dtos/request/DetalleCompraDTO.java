@@ -10,6 +10,7 @@ import lombok.Data;
 public class DetalleCompraDTO {
 
     @NotNull(message = "El ID del producto es obligatorio")
+    @Positive(message = "El ID del producto debe ser mayor a cero")
     private Long idProducto;
 
     @NotNull(message = "La cantidad es obligatoria")

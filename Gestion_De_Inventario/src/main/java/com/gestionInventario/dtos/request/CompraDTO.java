@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,15 +13,19 @@ import lombok.Data;
 public class CompraDTO {
 
     @NotNull(message = "El ID del proveedor es obligatorio")
+    @Positive(message = "El ID del proveedor debe ser mayor a cero")
     private Long idProveedor;
 
     @NotNull(message = "El ID del usuario es obligatorio")
+    @Positive(message = "El ID del usuario debe ser mayor a cero")
     private Long idUsuario;
 
     @NotNull(message = "El ID del almacén es obligatorio")
+    @Positive(message = "El ID del almacén debe ser mayor a cero")
     private Long idAlmacen;
 
     @NotNull(message = "El ID del tipo de comprobante es obligatorio")
+    @Positive(message = "El ID del tipo de comprobante debe ser mayor a cero")
     private Short idTipoComprobante;
 
     @NotBlank(message = "El número de comprobante es obligatorio")
@@ -31,6 +36,5 @@ public class CompraDTO {
     private String observacion;
 
     @NotEmpty(message = "La compra debe incluir al menos un detalle")
-    @Valid
-    private List<DetalleCompraDTO> detalles;
+    private List<@Valid DetalleCompraDTO> detalles;
 }

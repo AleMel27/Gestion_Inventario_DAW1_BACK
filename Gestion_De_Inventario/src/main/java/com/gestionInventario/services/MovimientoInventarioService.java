@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionInventario.exception.BusinessRuleException;
 import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Compra;
@@ -41,7 +42,8 @@ public class MovimientoInventarioService {
     }
 
     public MovimientoInventario obtenerPorId(Long id) {
-        return movimientoRepo.findById(id).orElse(null);
+        return movimientoRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El movimiento de inventario no existe"));
     }
 
     @Transactional
@@ -56,29 +58,29 @@ public class MovimientoInventarioService {
             Long idCompra) {
 
         if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("La cantidad debe ser mayor a cero");
+            throw new BusinessRuleException("La cantidad debe ser mayor a cero");
         }
 
         Producto producto = productoRepo.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + idProducto));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + idProducto));
 
         Almacen almacen = almacenRepo.findById(idAlmacen)
-                .orElseThrow(() -> new RuntimeException("Almacén no encontrado con ID: " + idAlmacen));
+                .orElseThrow(() -> new ResourceNotFoundException("Almacén no encontrado con ID: " + idAlmacen));
 
         Usuario usuario = usuarioRepo.findById(idUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
 
         TipoMovimiento tipoMovimiento = tipoMovimientoRepo.findById(idTipoMovimiento)
-                .orElseThrow(() -> new RuntimeException("Tipo de movimiento no encontrado con ID: " + idTipoMovimiento));
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de movimiento no encontrado con ID: " + idTipoMovimiento));
 
         if (!Boolean.TRUE.equals(tipoMovimiento.getEstado())) {
-            throw new RuntimeException("El tipo de movimiento especificado se encuentra inactivo");
+            throw new BusinessRuleException("El tipo de movimiento especificado se encuentra inactivo");
         }
 
         Compra compra = null;
         if (idCompra != null) {
             compra = compraRepo.findById(idCompra)
-                    .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + idCompra));
+                    .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con ID: " + idCompra));
         }
 
         // 3. Calcular el nuevo stock según el signoStock (+1, -1, 0)
@@ -94,7 +96,7 @@ public class MovimientoInventarioService {
         } else if (signo < 0) {
             // Salida / Decremento (Validación de Stock)
             if (stockAnterior.compareTo(cantidad) < 0) {
-                throw new RuntimeException("Stock insuficiente en el almacén. Stock actual: " 
+                throw new BusinessRuleException("Stock insuficiente en el almacén. Stock actual: " 
                         + stockAnterior + ", Cantidad requerida: " + cantidad);
             }
             stockPosterior = stockAnterior.subtract(cantidad);
@@ -126,7 +128,7 @@ public class MovimientoInventarioService {
     private Inventario obtenerInventarioParaModificar(Long idProducto, Long idAlmacen, short signoStock) {
         if (signoStock < 0) {
             return inventarioRepo.findByProductoAndAlmacenForUpdate(idProducto, idAlmacen)
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .orElseThrow(() -> new BusinessRuleException(
                             "No existe stock para el producto " + idProducto + " en el almacén " + idAlmacen));
         }
 

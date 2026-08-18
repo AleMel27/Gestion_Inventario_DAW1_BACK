@@ -4,10 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.gestionInventario.exception.BusinessRuleException;
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Categoria;
 import com.gestionInventario.model.Producto;
 import com.gestionInventario.model.UnidadMedida;
@@ -59,7 +59,7 @@ public class ProductoService {
     }
 
     public Producto obtenerPorId(Long id) {
-        return repo.findById(id).orElse(null);
+        return obtenerProductoExistente(id);
     }
 
     public Producto registrar(Producto producto) {
@@ -69,45 +69,38 @@ public class ProductoService {
     }
 
     public Producto actualizar(Long id, Producto producto) {
-        Producto productoExistente = repo.findById(id).orElse(null);
+        Producto productoExistente = obtenerProductoExistente(id);
 
-        if (productoExistente != null) {
-            if (tieneTexto(producto.getNombre())) {
-                productoExistente.setNombre(producto.getNombre());
-            }
-
-            if (tieneTexto(producto.getDescripcion())) {
-                productoExistente.setDescripcion(producto.getDescripcion());
-            }
-
-            if (producto.getPrecioVenta() != null) {
-                productoExistente.setPrecioVenta(producto.getPrecioVenta());
-            }
-
-            if (producto.getStockMinimo() != null) {
-                productoExistente.setStockMinimo(producto.getStockMinimo());
-            }
-
-            if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
-                productoExistente.setCategoria(obtenerCategoriaExistente(producto.getCategoria().getIdCategoria()));
-            }
-
-            if (producto.getUnidadMedida() != null && producto.getUnidadMedida().getIdUnidadMedida() != null) {
-                productoExistente.setUnidadMedida(
-                        obtenerUnidadMedidaExistente(producto.getUnidadMedida().getIdUnidadMedida()));
-            }
-
-            return repo.save(productoExistente);
+        if (tieneTexto(producto.getNombre())) {
+            productoExistente.setNombre(producto.getNombre());
         }
-        return null;
+
+        if (tieneTexto(producto.getDescripcion())) {
+            productoExistente.setDescripcion(producto.getDescripcion());
+        }
+
+        if (producto.getPrecioVenta() != null) {
+            productoExistente.setPrecioVenta(producto.getPrecioVenta());
+        }
+
+        if (producto.getStockMinimo() != null) {
+            productoExistente.setStockMinimo(producto.getStockMinimo());
+        }
+
+        if (producto.getCategoria() != null && producto.getCategoria().getIdCategoria() != null) {
+            productoExistente.setCategoria(obtenerCategoriaExistente(producto.getCategoria().getIdCategoria()));
+        }
+
+        if (producto.getUnidadMedida() != null && producto.getUnidadMedida().getIdUnidadMedida() != null) {
+            productoExistente.setUnidadMedida(
+                    obtenerUnidadMedidaExistente(producto.getUnidadMedida().getIdUnidadMedida()));
+        }
+
+        return repo.save(productoExistente);
     }
 
     public boolean eliminar(Long id) {
-        Producto productoExistente = repo.findById(id).orElse(null);
-
-        if (productoExistente == null) {
-            return false;
-        }
+        Producto productoExistente = obtenerProductoExistente(id);
 
         productoExistente.setEstado(false);
         repo.save(productoExistente);
@@ -115,11 +108,7 @@ public class ProductoService {
     }
 
     public boolean reactivar(Long id) {
-        Producto productoExistente = repo.findById(id).orElse(null);
-
-        if (productoExistente == null) {
-            return false;
-        }
+        Producto productoExistente = obtenerProductoExistente(id);
 
         productoExistente.setEstado(true);
         repo.save(productoExistente);
@@ -128,7 +117,7 @@ public class ProductoService {
 
     private void asignarCategoriaExistente(Producto producto) {
         if (producto.getCategoria() == null || producto.getCategoria().getIdCategoria() == null) {
-            throw new RuntimeException("La categoría es obligatoria");
+            throw new BusinessRuleException("La categoría es obligatoria");
         }
 
         producto.setCategoria(obtenerCategoriaExistente(producto.getCategoria().getIdCategoria()));
@@ -136,7 +125,7 @@ public class ProductoService {
 
     private void asignarUnidadMedidaExistente(Producto producto) {
         if (producto.getUnidadMedida() == null || producto.getUnidadMedida().getIdUnidadMedida() == null) {
-            throw new RuntimeException("La unidad de medida es obligatoria");
+            throw new BusinessRuleException("La unidad de medida es obligatoria");
         }
 
         producto.setUnidadMedida(obtenerUnidadMedidaExistente(producto.getUnidadMedida().getIdUnidadMedida()));
@@ -144,12 +133,10 @@ public class ProductoService {
 
     private Categoria obtenerCategoriaExistente(Long idCategoria) {
         Categoria categoria = categoriaRepo.findById(idCategoria)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
 
         if (Boolean.FALSE.equals(categoria.getEstado())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "No se puede asignar una categoría inactiva al producto");
+            throw new BusinessRuleException("No se puede asignar una categoría inactiva al producto");
         }
 
         return categoria;
@@ -157,7 +144,12 @@ public class ProductoService {
 
     private UnidadMedida obtenerUnidadMedidaExistente(Integer idUnidadMedida) {
         return unidadMedidaRepo.findById(idUnidadMedida)
-                .orElseThrow(() -> new RuntimeException("Unidad de medida no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Unidad de medida no encontrada"));
+    }
+
+    private Producto obtenerProductoExistente(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El producto no existe"));
     }
 
     private boolean tieneTexto(String valor) {

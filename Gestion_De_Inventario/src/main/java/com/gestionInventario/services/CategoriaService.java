@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Categoria;
 import com.gestionInventario.repository.ICategoriaRepository;
 
@@ -30,7 +31,7 @@ public class CategoriaService {
     }
 
     public Categoria obtenerPorId(Long id) {
-        return repo.findById(id).orElse(null);
+        return obtenerCategoriaExistente(id);
     }
 
     public Categoria registrar(Categoria categoria) {
@@ -38,28 +39,21 @@ public class CategoriaService {
     }
 
     public Categoria actualizar(Long id, Categoria categoria) {
-        Categoria categoriaExistente = repo.findById(id).orElse(null);
+        Categoria categoriaExistente = obtenerCategoriaExistente(id);
 
-        if (categoriaExistente != null) {
-            if (tieneTexto(categoria.getNombre())) {
-                categoriaExistente.setNombre(categoria.getNombre());
-            }
-
-            if (tieneTexto(categoria.getDescripcion())) {
-                categoriaExistente.setDescripcion(categoria.getDescripcion());
-            }
-
-            return repo.save(categoriaExistente);
+        if (tieneTexto(categoria.getNombre())) {
+            categoriaExistente.setNombre(categoria.getNombre());
         }
-        return null;
+
+        if (tieneTexto(categoria.getDescripcion())) {
+            categoriaExistente.setDescripcion(categoria.getDescripcion());
+        }
+
+        return repo.save(categoriaExistente);
     }
 
     public boolean eliminar(Long id) {
-        Categoria categoriaExistente = repo.findById(id).orElse(null);
-
-        if (categoriaExistente == null) {
-            return false;
-        }
+        Categoria categoriaExistente = obtenerCategoriaExistente(id);
 
         categoriaExistente.setEstado(false);
         repo.save(categoriaExistente);
@@ -67,11 +61,7 @@ public class CategoriaService {
     }
 
     public boolean reactivar(Long id) {
-        Categoria categoriaExistente = repo.findById(id).orElse(null);
-
-        if (categoriaExistente == null) {
-            return false;
-        }
+        Categoria categoriaExistente = obtenerCategoriaExistente(id);
 
         categoriaExistente.setEstado(true);
         repo.save(categoriaExistente);
@@ -80,6 +70,11 @@ public class CategoriaService {
 
     private boolean tieneTexto(String valor) {
         return valor != null && !valor.trim().isEmpty();
+    }
+
+    private Categoria obtenerCategoriaExistente(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("La categoría no existe"));
     }
 
 }

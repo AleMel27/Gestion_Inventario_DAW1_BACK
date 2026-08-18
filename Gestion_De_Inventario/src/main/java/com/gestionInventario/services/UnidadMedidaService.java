@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestionInventario.dtos.response.UnidadMedidaDTO;
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.mapper.UnidadMedidaMapper;
 import com.gestionInventario.model.UnidadMedida;
 import com.gestionInventario.repository.IUnidadMedidaRepository;
@@ -51,7 +52,7 @@ public class UnidadMedidaService {
 	@Transactional(readOnly = true)
 	public UnidadMedidaDTO obtenerPorId(Integer id) {
 		UnidadMedida unidad = repository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Unidad de medida no encontrada con ID: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Unidad de medida no encontrada con ID: " + id));
 		return mapper.convertirADto(unidad);
 	}
 }

@@ -18,6 +18,8 @@ import com.gestionInventario.mapper.CategoriaMapper;
 import com.gestionInventario.model.Categoria;
 import com.gestionInventario.services.CategoriaService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/categorias")
 @CrossOrigin(origins = "*")
@@ -60,7 +62,7 @@ public class CategoriaController {
 	}
 
 	@PostMapping
-	public ResponseEntity<CategoriaDTO> registrar(@RequestBody CategoriaCreateDTO dto) {
+	public ResponseEntity<CategoriaDTO> registrar(@Valid @RequestBody CategoriaCreateDTO dto) {
 		Categoria categoria = mapper.convertirAEntidad(dto);
 		Categoria registrada = service.registrar(categoria);
 		return ResponseEntity.status(HttpStatus.CREATED).body(mapper.convertirADto(registrada));
@@ -69,7 +71,7 @@ public class CategoriaController {
 	@PutMapping("/{id}")
 	public ResponseEntity<CategoriaDTO> actualizar(
 			@PathVariable Long id,
-			@RequestBody CategoriaUpdateDTO dto) {
+			@Valid @RequestBody CategoriaUpdateDTO dto) {
 		Categoria categoria = mapper.convertirAEntidad(dto);
 		Categoria actualizado = service.actualizar(id, categoria);
 		if (actualizado == null) {

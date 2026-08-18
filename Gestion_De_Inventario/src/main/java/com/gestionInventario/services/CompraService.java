@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gestionInventario.dtos.request.CompraDTO;
 import com.gestionInventario.dtos.response.CompraResDTO;
 import com.gestionInventario.dtos.response.CompraResumenDTO;
+import com.gestionInventario.exception.BusinessRuleException;
 import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.mapper.CompraMapper;
 import com.gestionInventario.model.Almacen;
@@ -135,12 +136,12 @@ public class CompraService {
         Compra compra = obtenerCompraExistente(id);
 
         if (!ESTADO_PENDIENTE.equals(compra.getEstado())) {
-            throw new IllegalArgumentException("Solo se puede recibir una compra en estado PENDIENTE");
+            throw new BusinessRuleException("Solo se puede recibir una compra en estado PENDIENTE");
         }
 
         List<DetalleCompra> detalles = detalleRepo.findByCompra_IdCompra(compra.getIdCompra());
         if (detalles.isEmpty()) {
-            throw new IllegalArgumentException("No se puede recibir una compra sin detalles");
+            throw new BusinessRuleException("No se puede recibir una compra sin detalles");
         }
 
         for (DetalleCompra detalle : detalles) {
@@ -165,15 +166,15 @@ public class CompraService {
         Compra compra = obtenerCompraExistente(id);
 
         if (ESTADO_RECIBIDA.equals(compra.getEstado())) {
-            throw new IllegalArgumentException("No se puede anular una compra RECIBIDA sin reversar inventario");
+            throw new BusinessRuleException("No se puede anular una compra RECIBIDA sin reversar inventario");
         }
 
         if (ESTADO_ANULADA.equals(compra.getEstado())) {
-            throw new IllegalArgumentException("La compra ya se encuentra ANULADA");
+            throw new BusinessRuleException("La compra ya se encuentra ANULADA");
         }
 
         if (!ESTADO_PENDIENTE.equals(compra.getEstado())) {
-            throw new IllegalArgumentException("Solo se puede anular una compra en estado PENDIENTE");
+            throw new BusinessRuleException("Solo se puede anular una compra en estado PENDIENTE");
         }
 
         compra.setEstado(ESTADO_ANULADA);

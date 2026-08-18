@@ -75,11 +75,7 @@ public class UsuarioService {
     }
 
     public boolean eliminar(Long id) {
-        Usuario usuarioExistente = repo.findById(id).orElse(null);
-
-        if (usuarioExistente == null) {
-            return false;
-        }
+        Usuario usuarioExistente = obtenerUsuarioExistente(id);
 
         usuarioExistente.setEstado(false);
         repo.save(usuarioExistente);
@@ -87,11 +83,7 @@ public class UsuarioService {
     }
 
     public boolean reactivar(Long id) {
-        Usuario usuarioExistente = repo.findById(id).orElse(null);
-
-        if (usuarioExistente == null) {
-            return false;
-        }
+        Usuario usuarioExistente = obtenerUsuarioExistente(id);
 
         usuarioExistente.setEstado(true);
         repo.save(usuarioExistente);

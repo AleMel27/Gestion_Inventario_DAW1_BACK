@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.repository.Lock;
 
+import com.gestionInventario.exception.BusinessRuleException;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Inventario;
 import com.gestionInventario.model.MovimientoInventario;
@@ -99,7 +100,7 @@ class MovimientoInventarioServiceTest {
         when(tipoMovimientoRepo.findById(2)).thenReturn(Optional.of(salida));
         when(inventarioRepo.findByProductoAndAlmacenForUpdate(1L, 1L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> service.registrarMovimiento(
+        assertThrows(BusinessRuleException.class, () -> service.registrarMovimiento(
                 1L,
                 1L,
                 1L,

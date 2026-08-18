@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.gestionInventario.exception.ResourceNotFoundException;
 import com.gestionInventario.model.Proveedor;
 import com.gestionInventario.repository.IProveedorRepository;
 
@@ -58,7 +59,7 @@ public class ProveedorService {
     }
 
     public Proveedor obtenerPorId(Long id) {
-        return repo.findById(id).orElse(null);
+        return obtenerProveedorExistente(id);
     }
 
     public Proveedor registrar(Proveedor proveedor) {
@@ -69,40 +70,33 @@ public class ProveedorService {
     }
 
     public Proveedor actualizar(Long id, Proveedor proveedor) {
-        Proveedor proveedorExistente = repo.findById(id).orElse(null);
+        Proveedor proveedorExistente = obtenerProveedorExistente(id);
 
-        if (proveedorExistente != null) {
-            if (tieneTexto(proveedor.getRuc())) {
-                proveedorExistente.setRuc(proveedor.getRuc());
-            }
-
-            if (tieneTexto(proveedor.getRazonSocial())) {
-                proveedorExistente.setRazonSocial(proveedor.getRazonSocial());
-            }
-
-            if (tieneTexto(proveedor.getTelefono())) {
-                proveedorExistente.setTelefono(proveedor.getTelefono());
-            }
-
-            if (tieneTexto(proveedor.getCorreo())) {
-                proveedorExistente.setCorreo(proveedor.getCorreo());
-            }
-
-            if (tieneTexto(proveedor.getDireccion())) {
-                proveedorExistente.setDireccion(proveedor.getDireccion());
-            }
-
-            return repo.save(proveedorExistente);
+        if (tieneTexto(proveedor.getRuc())) {
+            proveedorExistente.setRuc(proveedor.getRuc());
         }
-        return null;
+
+        if (tieneTexto(proveedor.getRazonSocial())) {
+            proveedorExistente.setRazonSocial(proveedor.getRazonSocial());
+        }
+
+        if (tieneTexto(proveedor.getTelefono())) {
+            proveedorExistente.setTelefono(proveedor.getTelefono());
+        }
+
+        if (tieneTexto(proveedor.getCorreo())) {
+            proveedorExistente.setCorreo(proveedor.getCorreo());
+        }
+
+        if (tieneTexto(proveedor.getDireccion())) {
+            proveedorExistente.setDireccion(proveedor.getDireccion());
+        }
+
+        return repo.save(proveedorExistente);
     }
 
     public boolean eliminar(Long id) {
-        Proveedor proveedorExistente = repo.findById(id).orElse(null);
-
-        if (proveedorExistente == null) {
-            return false;
-        }
+        Proveedor proveedorExistente = obtenerProveedorExistente(id);
 
         proveedorExistente.setEstado(false);
         repo.save(proveedorExistente);
@@ -110,11 +104,7 @@ public class ProveedorService {
     }
 
     public boolean reactivar(Long id) {
-        Proveedor proveedorExistente = repo.findById(id).orElse(null);
-
-        if (proveedorExistente == null) {
-            return false;
-        }
+        Proveedor proveedorExistente = obtenerProveedorExistente(id);
 
         proveedorExistente.setEstado(true);
         repo.save(proveedorExistente);
@@ -123,5 +113,10 @@ public class ProveedorService {
 
     private boolean tieneTexto(String valor) {
         return valor != null && !valor.trim().isEmpty();
+    }
+
+    private Proveedor obtenerProveedorExistente(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El proveedor no existe"));
     }
 }

@@ -39,14 +39,17 @@ public class Proveedor {
 	private String razonSocial;
 
     @Column(length = 20)
+    @Size(max = 20)
     private String telefono;
 
+    @NotBlank
     @Email
     @Size(max = 150)
     @Column(unique = true, length = 150, nullable = false)
     private String correo;
 
     @Column(length = 255)
+    @Size(max = 255)
     private String direccion;
 
     @Column(nullable = false)
