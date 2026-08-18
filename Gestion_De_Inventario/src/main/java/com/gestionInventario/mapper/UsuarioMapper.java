@@ -35,7 +35,7 @@ public class UsuarioMapper {
     	usuario.setNombres(dto.getNombres());
     	usuario.setApellidos(dto.getApellidos());
     	usuario.setCorreo(dto.getCorreo());
-    	usuario.setPasswordHash(dto.getPasswordHash());
+    	usuario.setPasswordHash(dto.getPassword());
     	usuario.setEstado(true);
     	
         if (dto.getIdrol() != null) {

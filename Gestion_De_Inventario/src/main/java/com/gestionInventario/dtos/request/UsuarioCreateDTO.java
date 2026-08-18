@@ -10,6 +10,6 @@ public class UsuarioCreateDTO {
     private String nombres;
     private String apellidos;
     private String correo;
-    private String passwordHash;
+    private String password;
     private Short idrol;
 }
