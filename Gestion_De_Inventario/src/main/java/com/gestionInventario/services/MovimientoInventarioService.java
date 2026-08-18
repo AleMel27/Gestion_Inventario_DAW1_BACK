@@ -1,13 +1,21 @@
 package com.gestionInventario.services;
 
 import java.math.BigDecimal;
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionInventario.dtos.request.MovimientoInventarioCreateDTO;
+import com.gestionInventario.dtos.response.MovimientoInventarioResDTO;
 import com.gestionInventario.exception.BusinessRuleException;
 import com.gestionInventario.exception.ResourceNotFoundException;
+import com.gestionInventario.mapper.MovimientoInventarioMapper;
 import com.gestionInventario.model.Almacen;
 import com.gestionInventario.model.Compra;
 import com.gestionInventario.model.Inventario;
@@ -36,14 +44,45 @@ public class MovimientoInventarioService {
     private final IUsuarioRepository usuarioRepo;
     private final ITipoMovimientoRepository tipoMovimientoRepo;
     private final ICompraRepository compraRepo;
+    private final MovimientoInventarioMapper movimientoMapper;
 
-    public List<MovimientoInventario> listarTodos() {
-        return movimientoRepo.findAll();
+    @Transactional(readOnly = true)
+    public Page<MovimientoInventarioResDTO> listarPaginado(Pageable pageable) {
+        return movimientoRepo.findAll(pageable).map(movimientoMapper::convertirADto);
     }
 
-    public MovimientoInventario obtenerPorId(Long id) {
-        return movimientoRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("El movimiento de inventario no existe"));
+    @Transactional(readOnly = true)
+    public MovimientoInventarioResDTO obtenerPorId(Long id) {
+        return movimientoMapper.convertirADto(obtenerMovimientoExistente(id));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovimientoInventarioResDTO> listarHistorialProductoAlmacen(
+            Long idProducto,
+            Long idAlmacen,
+            Pageable pageable) {
+
+        return movimientoRepo.findByProducto_IdProductoAndAlmacen_IdAlmacen(idProducto, idAlmacen, pageable)
+                .map(movimientoMapper::convertirADto);
+    }
+
+    @Transactional
+    public MovimientoInventarioResDTO registrarManual(MovimientoInventarioCreateDTO dto) {
+        Usuario usuarioAutenticado = obtenerUsuarioAutenticado();
+        TipoMovimiento tipoMovimiento = obtenerTipoMovimientoActivo(dto.getIdTipoMovimiento());
+        validarAutorizacionPorTipoMovimiento(tipoMovimiento);
+
+        MovimientoInventario movimiento = registrarMovimientoInterno(
+                dto.getIdProducto(),
+                dto.getIdAlmacen(),
+                usuarioAutenticado,
+                tipoMovimiento,
+                dto.getCantidad(),
+                dto.getMotivo(),
+                dto.getReferencia(),
+                null);
+
+        return movimientoMapper.convertirADto(movimiento);
     }
 
     @Transactional
@@ -57,6 +96,38 @@ public class MovimientoInventarioService {
             String referencia,
             Long idCompra) {
 
+        Usuario usuario = usuarioRepo.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
+
+        TipoMovimiento tipoMovimiento = obtenerTipoMovimientoActivo(idTipoMovimiento);
+
+        Compra compra = null;
+        if (idCompra != null) {
+            compra = compraRepo.findById(idCompra)
+                    .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con ID: " + idCompra));
+        }
+
+        return registrarMovimientoInterno(
+                idProducto,
+                idAlmacen,
+                usuario,
+                tipoMovimiento,
+                cantidad,
+                motivo,
+                referencia,
+                compra);
+    }
+
+    private MovimientoInventario registrarMovimientoInterno(
+            Long idProducto,
+            Long idAlmacen,
+            Usuario usuario,
+            TipoMovimiento tipoMovimiento,
+            BigDecimal cantidad,
+            String motivo,
+            String referencia,
+            Compra compra) {
+
         if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleException("La cantidad debe ser mayor a cero");
         }
@@ -66,22 +137,6 @@ public class MovimientoInventarioService {
 
         Almacen almacen = almacenRepo.findById(idAlmacen)
                 .orElseThrow(() -> new ResourceNotFoundException("Almacén no encontrado con ID: " + idAlmacen));
-
-        Usuario usuario = usuarioRepo.findById(idUsuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
-
-        TipoMovimiento tipoMovimiento = tipoMovimientoRepo.findById(idTipoMovimiento)
-                .orElseThrow(() -> new ResourceNotFoundException("Tipo de movimiento no encontrado con ID: " + idTipoMovimiento));
-
-        if (!Boolean.TRUE.equals(tipoMovimiento.getEstado())) {
-            throw new BusinessRuleException("El tipo de movimiento especificado se encuentra inactivo");
-        }
-
-        Compra compra = null;
-        if (idCompra != null) {
-            compra = compraRepo.findById(idCompra)
-                    .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con ID: " + idCompra));
-        }
 
         // 3. Calcular el nuevo stock según el signoStock (+1, -1, 0)
         short signo = tipoMovimiento.getSignoStock();
@@ -155,14 +210,79 @@ public class MovimientoInventarioService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Tipo de movimiento no encontrado con código: " + codigoTipoMovimiento));
 
-        return registrarMovimiento(
+        Usuario usuario = usuarioRepo.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
+
+        Compra compra = null;
+        if (idCompra != null) {
+            compra = compraRepo.findById(idCompra)
+                    .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con ID: " + idCompra));
+        }
+
+        if (!Boolean.TRUE.equals(tipoMovimiento.getEstado())) {
+            throw new BusinessRuleException("El tipo de movimiento especificado se encuentra inactivo");
+        }
+
+        return registrarMovimientoInterno(
                 idProducto,
                 idAlmacen,
-                idUsuario,
-                tipoMovimiento.getIdTipoMovimiento(),
+                usuario,
+                tipoMovimiento,
                 cantidad,
                 motivo,
                 referencia,
-                idCompra);
+                compra);
+    }
+
+    private MovimientoInventario obtenerMovimientoExistente(Long id) {
+        return movimientoRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("El movimiento de inventario no existe"));
+    }
+
+    private TipoMovimiento obtenerTipoMovimientoActivo(Integer idTipoMovimiento) {
+        TipoMovimiento tipoMovimiento = tipoMovimientoRepo.findById(idTipoMovimiento)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Tipo de movimiento no encontrado con ID: " + idTipoMovimiento));
+
+        if (!Boolean.TRUE.equals(tipoMovimiento.getEstado())) {
+            throw new BusinessRuleException("El tipo de movimiento especificado se encuentra inactivo");
+        }
+
+        return tipoMovimiento;
+    }
+
+    private Usuario obtenerUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("Usuario no autenticado");
+        }
+
+        return usuarioRepo.findByCorreo(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("Usuario autenticado no encontrado"));
+    }
+
+    private void validarAutorizacionPorTipoMovimiento(TipoMovimiento tipoMovimiento) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean esAdministrador = tieneAuthority(authentication, "ROLE_ADMINISTRADOR");
+        boolean esAlmacenero = tieneAuthority(authentication, "ROLE_ALMACENERO");
+        String codigo = tipoMovimiento.getCodigo();
+
+        if (esAdministrador) {
+            return;
+        }
+
+        if (esAlmacenero && ("AJUSTE_ENTRADA".equals(codigo) || "AJUSTE_SALIDA".equals(codigo))) {
+            throw new AccessDeniedException("No tiene permisos para realizar ajustes de inventario");
+        }
+    }
+
+    private boolean tieneAuthority(Authentication authentication, String authority) {
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority::equals);
     }
 }

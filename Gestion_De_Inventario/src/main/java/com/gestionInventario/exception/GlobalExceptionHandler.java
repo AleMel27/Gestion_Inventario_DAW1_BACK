@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -104,6 +105,22 @@ public class GlobalExceptionHandler {
     }
 
     // 5. Rutas o recursos estáticos no encontrados (HTTP 404)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        ErrorResponseDTO errorDTO = new ErrorResponseDTO(
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "No tiene permisos para realizar esta operación",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorDTO);
+    }
+
+    // 6. Rutas o recursos estáticos no encontrados (HTTP 404)
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
     public ResponseEntity<ErrorResponseDTO> handleRouteNotFoundException(
             Exception ex,
@@ -119,7 +136,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDTO);
     }
 
-    // 6. Captura general para errores no controlados (HTTP 500)
+    // 7. Captura general para errores no controlados (HTTP 500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGlobalException(
             Exception ex, 
