@@ -8,15 +8,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.gestionInventario.dtos.request.UsuarioCreateDTO;
 import com.gestionInventario.dtos.request.UsuarioUpdateDTO;
@@ -44,15 +51,23 @@ class UsuarioServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         service = new UsuarioService(
                 usuarioRepository,
                 rolRepository,
                 passwordEncoder,
                 new UsuarioMapper());
+        ReflectionTestUtils.setField(service, "bootstrapAdminEnabled", false);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void registrarCorrectamenteAsignaRolCodificaPasswordYDevuelveDto() {
+        autenticarComo("ROLE_ADMINISTRADOR");
         UsuarioCreateDTO dto = usuarioCreateDTO();
         Rol rol = rol("ADMINISTRADOR");
 
@@ -86,6 +101,7 @@ class UsuarioServiceTest {
 
     @Test
     void registrarConRolInexistenteNoGuardaUsuario() {
+        autenticarComo("ROLE_ADMINISTRADOR");
         UsuarioCreateDTO dto = usuarioCreateDTO();
         dto.setIdRol((short) 99);
         when(rolRepository.findById((short) 99)).thenReturn(Optional.empty());
@@ -94,6 +110,79 @@ class UsuarioServiceTest {
 
         verify(usuarioRepository, never()).save(any(Usuario.class));
         verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void bootstrapHabilitadoSinAdminPermitePrimerAdministradorAnonimo() {
+        ReflectionTestUtils.setField(service, "bootstrapAdminEnabled", true);
+        UsuarioCreateDTO dto = usuarioCreateDTO();
+        Rol rol = rol("ADMINISTRADOR");
+
+        when(rolRepository.findById((short) 1)).thenReturn(Optional.of(rol));
+        when(rolRepository.findByNombre("ADMINISTRADOR")).thenReturn(Optional.of(rol));
+        when(usuarioRepository.existsByEstadoTrueAndRolNombre("ADMINISTRADOR")).thenReturn(false);
+        when(passwordEncoder.encode("MiPassword123!")).thenReturn("$2a$hash");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
+            Usuario usuario = invocation.getArgument(0);
+            usuario.setIdUsuario(4L);
+            return usuario;
+        });
+
+        UsuarioDTO response = service.registrar(dto);
+
+        assertEquals("ADMINISTRADOR", response.getRol().getNombre());
+        verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
+    void bootstrapHabilitadoRechazaSegundoAdministradorAnonimo() {
+        ReflectionTestUtils.setField(service, "bootstrapAdminEnabled", true);
+        UsuarioCreateDTO dto = usuarioCreateDTO();
+        Rol rol = rol("ADMINISTRADOR");
+
+        when(rolRepository.findById((short) 1)).thenReturn(Optional.of(rol));
+        when(rolRepository.findByNombre("ADMINISTRADOR")).thenReturn(Optional.of(rol));
+        when(usuarioRepository.existsByEstadoTrueAndRolNombre("ADMINISTRADOR")).thenReturn(true);
+
+        assertThrows(AccessDeniedException.class, () -> service.registrar(dto));
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void bootstrapHabilitadoRechazaAlmaceneroAnonimo() {
+        ReflectionTestUtils.setField(service, "bootstrapAdminEnabled", true);
+        UsuarioCreateDTO dto = usuarioCreateDTO();
+        dto.setIdRol((short) 2);
+        Rol rol = rol("ALMACENERO");
+        rol.setIdRol((short) 2);
+
+        when(rolRepository.findById((short) 2)).thenReturn(Optional.of(rol));
+
+        assertThrows(AccessDeniedException.class, () -> service.registrar(dto));
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void bootstrapDeshabilitadoRechazaRegistroAnonimo() {
+        UsuarioCreateDTO dto = usuarioCreateDTO();
+
+        assertThrows(AccessDeniedException.class, () -> service.registrar(dto));
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    void almaceneroAutenticadoNoPuedeRegistrarUsuario() {
+        autenticarComo("ROLE_ALMACENERO");
+        UsuarioCreateDTO dto = usuarioCreateDTO();
+
+        assertThrows(AccessDeniedException.class, () -> service.registrar(dto));
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
     @Test
@@ -190,5 +279,13 @@ class UsuarioServiceTest {
         rol.setNombre(nombre);
         rol.setEstado(true);
         return rol;
+    }
+
+    private void autenticarComo(String authority) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "usuario@licores.com",
+                null,
+                List.of(new SimpleGrantedAuthority(authority)));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

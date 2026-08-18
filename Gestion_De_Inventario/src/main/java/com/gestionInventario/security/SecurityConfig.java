@@ -1,5 +1,6 @@
 package com.gestionInventario.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,6 +26,9 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
+    @Value("${security.bootstrap-admin-enabled:false}")
+    private boolean bootstrapAdminEnabled;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,51 +47,57 @@ public class SecurityConfig {
                 .accessDeniedHandler(jwtAccessDeniedHandler)
             )
 
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
 
-                .requestMatchers("/api/usuarios/**").hasRole(ADMINISTRADOR)
-                .requestMatchers("/api/roles/**").hasRole(ADMINISTRADOR)
+                if (bootstrapAdminEnabled) {
+                    auth.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").permitAll();
+                } else {
+                    auth.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").hasRole(ADMINISTRADOR);
+                }
 
-                .requestMatchers(HttpMethod.DELETE, "/api/proveedor/**").denyAll()
-                .requestMatchers(HttpMethod.PATCH, "/api/proveedor/**").denyAll()
-                .requestMatchers(HttpMethod.POST, "/api/inventario/**").denyAll()
-                .requestMatchers(HttpMethod.PUT, "/api/inventario/**").denyAll()
-                .requestMatchers(HttpMethod.PATCH, "/api/inventario/**").denyAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/inventario/**").denyAll()
+                auth.requestMatchers("/api/usuarios/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers("/api/roles/**").hasRole(ADMINISTRADOR)
 
-                .requestMatchers(HttpMethod.DELETE, "/api/producto/**").hasRole(ADMINISTRADOR)
-                .requestMatchers(HttpMethod.PATCH, "/api/producto/**").hasRole(ADMINISTRADOR)
-                .requestMatchers(HttpMethod.GET, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers(HttpMethod.POST, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers(HttpMethod.PUT, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.DELETE, "/api/proveedor/**").denyAll()
+                    .requestMatchers(HttpMethod.PATCH, "/api/proveedor/**").denyAll()
+                    .requestMatchers(HttpMethod.POST, "/api/inventario/**").denyAll()
+                    .requestMatchers(HttpMethod.PUT, "/api/inventario/**").denyAll()
+                    .requestMatchers(HttpMethod.PATCH, "/api/inventario/**").denyAll()
+                    .requestMatchers(HttpMethod.DELETE, "/api/inventario/**").denyAll()
 
-                .requestMatchers(HttpMethod.GET, "/api/categorias/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers("/api/categorias/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.DELETE, "/api/producto/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.PATCH, "/api/producto/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.GET, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.POST, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.PUT, "/api/producto/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
 
-                .requestMatchers(HttpMethod.GET, "/api/unidades-medida/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers("/api/unidades-medida/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.GET, "/api/categorias/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/categorias/**").hasRole(ADMINISTRADOR)
 
-                .requestMatchers(HttpMethod.GET, "/api/almacen/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers("/api/almacen/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.GET, "/api/unidades-medida/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/unidades-medida/**").hasRole(ADMINISTRADOR)
 
-                .requestMatchers(HttpMethod.GET, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers(HttpMethod.POST, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers(HttpMethod.PUT, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.GET, "/api/almacen/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/almacen/**").hasRole(ADMINISTRADOR)
 
-                .requestMatchers(HttpMethod.GET, "/api/comprobante/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers("/api/comprobante/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.GET, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.POST, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.PUT, "/api/proveedor/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
 
-                .requestMatchers("/api/compras/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers(HttpMethod.GET, "/api/comprobante/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/comprobante/**").hasRole(ADMINISTRADOR)
 
-                .requestMatchers(HttpMethod.GET, "/api/inventario/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/compras/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
 
-                .requestMatchers(HttpMethod.GET, "/api/movimiento/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
-                .requestMatchers("/api/movimiento/**").hasRole(ADMINISTRADOR)
+                    .requestMatchers(HttpMethod.GET, "/api/inventario/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
 
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().authenticated()
-            )
+                    .requestMatchers(HttpMethod.GET, "/api/movimiento/**").hasAnyRole(ADMINISTRADOR, ALMACENERO)
+                    .requestMatchers("/api/movimiento/**").hasRole(ADMINISTRADOR)
+
+                    .requestMatchers("/api/**").authenticated()
+                    .anyRequest().authenticated();
+            })
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

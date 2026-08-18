@@ -22,6 +22,9 @@ class SecurityAuthorizationRulesTest {
     void loginPublicoYRestoUsuariosSoloAdministrador() {
         assertThat(securityConfig)
                 .contains(".requestMatchers(HttpMethod.POST, \"/api/auth/login\").permitAll()")
+                .contains("if (bootstrapAdminEnabled)")
+                .contains(".requestMatchers(HttpMethod.POST, \"/api/usuarios/registrar\").permitAll()")
+                .contains(".requestMatchers(HttpMethod.POST, \"/api/usuarios/registrar\").hasRole(ADMINISTRADOR)")
                 .contains(".requestMatchers(\"/api/usuarios/**\").hasRole(ADMINISTRADOR)")
                 .contains(".requestMatchers(\"/api/roles/**\").hasRole(ADMINISTRADOR)");
     }
